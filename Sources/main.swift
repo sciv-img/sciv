@@ -79,8 +79,10 @@ class Imager: NSWindow {
         let modifiers = event.modifierFlags
         switch event.charactersIgnoringModifiers! {
         case " ":
-            if modifiers.contains(.ShiftKeyMask) && self.i > 0 {
-                self.i -= 1
+            if modifiers.contains(.ShiftKeyMask) {
+                if self.i > 0 {
+                    self.i -= 1
+                }
             } else if self.i < self.files.count - 1 {
                 self.i += 1
             }

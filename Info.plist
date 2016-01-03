@@ -12,5 +12,12 @@
     <string>sciv</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>LSItemContentTypes</key>
+            <array><string>public.image</string></array>
+        </dict>
+    </array>
 </dict>
 </plist>
