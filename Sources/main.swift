@@ -39,7 +39,6 @@ class Imager: NSWindow {
             dir = dirOrFilePath
         }
         for path in try! dir.children() {  // FIXME: Safety
-            Swift.print(path)
             let ext = path.`extension`
             if ext == nil {
                 continue
@@ -91,10 +90,15 @@ class Imager: NSWindow {
             if self.visited.count == self.files.count {
                 return
             }
+            self.visited.append(self.i)
             repeat {
                 self.i = Int(arc4random_uniform(UInt32(self.files.count) - 1))
             } while self.visited.contains(self.i)
-            self.visited.append(self.i)
+        case "R":
+            if self.visited.count == 0 {
+                return
+            }
+            self.i = self.visited.removeLast()
         case "s":
             self.toggleTimer() // TODO: Move timer to separate object?
         default:
@@ -138,9 +142,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(aNotification: NSNotification) {
-        // if Process.arguments.count >= 2 {
-        //     self.window.setup(Process.arguments[1])
-        // }
         self.window.show()
         self.window.makeKeyAndOrderFront(self)
     }
