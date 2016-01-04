@@ -54,14 +54,25 @@ class Imager: NSWindow {
     }
 
     func show() {
-        let filename = self.files[self.i]
-        let image = NSImage(byReferencingFile: String(Path("/Users/kenji/Pictures/jb") + filename))
+        let filepath = String(self.files[self.i])
+        self.title = filepath
+        let image = NSImage(byReferencingFile: filepath)
         self.view.image = image
     }
 
     func next() {
+        if self.i >= self.files.count {
+            return
+        }
         self.i += 1
         self.show()
+    }
+
+    func previous() {
+        if self.i <= 0 {
+            return
+        }
+        self.i -= 1
     }
 
     func toggleTimer() {
@@ -80,11 +91,9 @@ class Imager: NSWindow {
         switch event.charactersIgnoringModifiers! {
         case " ":
             if modifiers.contains(.ShiftKeyMask) {
-                if self.i > 0 {
-                    self.i -= 1
-                }
-            } else if self.i < self.files.count - 1 {
-                self.i += 1
+                self.previous()
+            } else {
+                self.next()
             }
         case "r":
             // TODO: Improve this routine, it seems weird
