@@ -1,12 +1,21 @@
 import AppKit
 import PathKit
 
+func debug(contents: AnyObject) {
+    try! String(contents).writeToFile("/tmp/sciv", atomically: false, encoding: NSUTF8StringEncoding)
+}
+
 class Imager: NSWindow {
     var files: [Path]
     var i: Int
     var visited: [Int]
 
     var view: NSImageView
+    let defaultMask = NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask | NSTitledWindowMask
+
+    var isFullScreen: Bool
+    var previousBackgroundColor: NSColor?
+    var previousFrame: NSRect?
 
     var timer: NSTimer?
 
@@ -20,9 +29,10 @@ class Imager: NSWindow {
         self.visited = []
         let rect = NSMakeRect(200, 200, 640, 480)
         self.view = NSImageView(frame: rect)
+        self.isFullScreen = false
         super.init(
             contentRect: rect,
-            styleMask: NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask | NSTitledWindowMask,
+            styleMask: self.defaultMask,
             backing: .Buffered,
             defer: true
         )
@@ -86,6 +96,26 @@ class Imager: NSWindow {
         self.timer = nil
     }
 
+    func toggleFullScreen() {
+        self.isFullScreen = !self.isFullScreen
+
+        if self.isFullScreen {
+            self.previousBackgroundColor = self.backgroundColor
+            self.previousFrame = self.frame
+
+            NSMenu.setMenuBarVisible(false)
+            self.styleMask = NSBorderlessWindowMask
+            self.setFrame(NSScreen.mainScreen()!.frame, display: true, animate: true) // FIXME: Safety
+            self.backgroundColor = NSColor.blackColor()
+        } else {
+            NSMenu.setMenuBarVisible(true)
+            self.styleMask = self.defaultMask
+            self.title = String(self.files[self.i])
+            self.setFrame(self.previousFrame!, display: true, animate: true)
+            self.backgroundColor = self.previousBackgroundColor!
+        }
+    }
+
     override func keyDown(event: NSEvent) {
         let modifiers = event.modifierFlags
         switch event.charactersIgnoringModifiers! {
@@ -112,6 +142,9 @@ class Imager: NSWindow {
             self.i = self.visited.removeLast()
         case "s":
             self.toggleTimer() // TODO: Move timer to separate object?
+        case "f":
+            self.toggleFullScreen()
+            return
         default:
             super.keyDown(event)
             return
