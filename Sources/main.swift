@@ -43,6 +43,7 @@ class Imager: NSWindow {
         var dir: Path
         let dirOrFilePath = Path(dirOrFile)
         if dirOrFilePath.isFile {
+            // TODO: Move this (done nicely) into PathKit
             let components = dirOrFilePath.components
             dir = Path(components[0..<components.count - 1].joinWithSeparator(Path.separator))
         } else {
@@ -71,11 +72,10 @@ class Imager: NSWindow {
     }
 
     func next() {
-        if self.i >= self.files.count {
+        if self.i + 1 >= self.files.count {
             return
         }
         self.i += 1
-        self.show()
     }
 
     func previous() {
