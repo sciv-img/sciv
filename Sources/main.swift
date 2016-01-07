@@ -76,6 +76,7 @@ class Imager: NSWindow {
             return
         }
         self.i += 1
+        self.show()
     }
 
     func previous() {
@@ -83,6 +84,7 @@ class Imager: NSWindow {
             return
         }
         self.i -= 1
+        self.show()
     }
 
     func toggleTimer() {
@@ -135,11 +137,13 @@ class Imager: NSWindow {
             repeat {
                 self.i = Int(arc4random_uniform(UInt32(self.files.count) - 1))
             } while self.visited.contains(self.i)
+            self.show()
         case "R":
             if self.visited.count == 0 {
                 return
             }
             self.i = self.visited.removeLast()
+            self.show()
         case "s":
             self.toggleTimer() // TODO: Move timer to separate object?
         case "f":
@@ -149,7 +153,6 @@ class Imager: NSWindow {
             super.keyDown(event)
             return
         }
-        self.show()
     }
 }
 
