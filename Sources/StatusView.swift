@@ -13,7 +13,7 @@ class StatusView: NSView {
     }
 
     override func drawRect(dirtyRect: NSRect) {
-        let frame = NSMakeRect(0, 20, dirtyRect.width, 1)
+        let frame = NSMakeRect(0, 21, dirtyRect.width, 1)
         NSColor.windowFrameColor().setFill()
         NSRectFill(frame)
 
@@ -29,7 +29,7 @@ class StatusView: NSView {
                 NSColor(deviceWhite: 235 / 0xff, alpha: 1)
             ]
         }
-        let bg = NSMakeRect(0, 0, dirtyRect.width, dirtyRect.height - 2)
+        let bg = NSMakeRect(0, 0, dirtyRect.width, dirtyRect.height - 1)
         NSGradient(colors: colors)!.drawInRect(bg, angle: 90)
         let status = "\(self.currentFile)/\(self.numberOfFiles)"
         status.drawAtPoint(NSPoint(x: 6, y: 3), withAttributes: nil)
