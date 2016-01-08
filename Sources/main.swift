@@ -7,7 +7,11 @@ func debug(contents: AnyObject) {
 
 class Imager: NSWindow {
     var files: [Path]
-    var i: Int
+    var i: Int {
+        didSet {
+            self.show()
+        }
+    }
     var visited: [Int]
 
     var imageView: NSImageView
@@ -76,6 +80,7 @@ class Imager: NSWindow {
         }
 
         self.statusView.numberOfFiles = self.files.count
+        self.i = self.files.indexOf(dirOrFilePath) ?? 0
     }
 
     func show() {
@@ -91,7 +96,6 @@ class Imager: NSWindow {
             return
         }
         self.i += 1
-        self.show()
     }
 
     func previous() {
@@ -99,7 +103,6 @@ class Imager: NSWindow {
             return
         }
         self.i -= 1
-        self.show()
     }
 
     func toggleTimer() {
@@ -152,13 +155,11 @@ class Imager: NSWindow {
             repeat {
                 self.i = Int(arc4random_uniform(UInt32(self.files.count) - 1))
             } while self.visited.contains(self.i)
-            self.show()
         case "R":
             if self.visited.count == 0 {
                 return
             }
             self.i = self.visited.removeLast()
-            self.show()
         case "s":
             self.toggleTimer() // TODO: Move timer to separate object?
         case "f":
@@ -212,7 +213,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(aNotification: NSNotification) {
-        self.window.show()
         self.window.makeKeyAndOrderFront(self)
     }
 
