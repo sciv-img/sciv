@@ -10,8 +10,14 @@ class Imager: NSWindow {
     var i: Int
     var visited: [Int]
 
-    var view: NSImageView
-    let defaultMask = NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask | NSTitledWindowMask
+    var imageView: NSImageView
+    var statusView: StatusView
+    let defaultMask = (
+        NSClosableWindowMask |
+        NSMiniaturizableWindowMask |
+        NSResizableWindowMask |
+        NSTitledWindowMask
+    )
 
     var isFullScreen: Bool
     var previousBackgroundColor: NSColor?
@@ -27,15 +33,23 @@ class Imager: NSWindow {
         self.files = []
         self.i = 0
         self.visited = []
-        let rect = NSMakeRect(200, 200, 640, 480)
-        self.view = NSImageView(frame: rect)
+        self.imageView = NSImageView(frame: NSMakeRect(0, 22, 640, 458))
+        self.imageView.autoresizingMask = [.ViewWidthSizable, .ViewHeightSizable]
+        self.statusView = StatusView(frame: NSMakeRect(0, 0, 640, 22))
+        self.statusView.autoresizingMask = [.ViewWidthSizable]
         self.isFullScreen = false
+
+        let rect = NSMakeRect(200, 200, 640, 480)
         super.init(
             contentRect: rect,
             styleMask: self.defaultMask,
             backing: .Buffered,
             defer: true
         )
+        let view = NSView(frame: rect)
+        self.contentView = view
+        view.addSubview(self.imageView)
+        view.addSubview(self.statusView)
     }
 
     func setup(dirOrFile: String) {
@@ -61,14 +75,15 @@ class Imager: NSWindow {
             self.files.append(path)
         }
 
-        self.contentView = self.view
+        self.statusView.numberOfFiles = self.files.count
     }
 
     func show() {
         let filepath = String(self.files[self.i])
         self.title = filepath
         let image = NSImage(byReferencingFile: filepath)
-        self.view.image = image
+        self.imageView.image = image
+        self.statusView.currentFile = self.i + 1
     }
 
     func next() {
@@ -186,6 +201,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func application(_: NSApplication, openFile: String) -> Bool {
         self.window.setup(openFile)
         return true
+    }
+
+    func applicationDidBecomeActive(_: NSNotification) {
+        self.window.statusView.needsDisplay = true
+    }
+
+    func applicationDidResignActive(_: NSNotification) {
+        self.window.statusView.needsDisplay = true
     }
 
     func applicationDidFinishLaunching(aNotification: NSNotification) {
