@@ -164,10 +164,8 @@ class Imager: NSWindow {
             self.toggleTimer() // TODO: Move timer to separate object?
         case "f":
             self.toggleFullScreen()
-            return
         default:
             super.keyDown(event)
-            return
         }
     }
 }
