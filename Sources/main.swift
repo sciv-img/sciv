@@ -198,6 +198,8 @@ class Imager: NSWindow {
             }
         case "G":
             self.last()
+        case "q":
+            self.close()
         default:
             super.keyDown(event)
         }
