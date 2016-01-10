@@ -8,7 +8,6 @@ class Imager: NSWindow {
             self.show()
         }
     }
-    var visited: [Int]
 
     var imageView: NSImageView
     var statusView: StatusView
@@ -34,7 +33,6 @@ class Imager: NSWindow {
     init() {
         self.files = []
         self.i = 0
-        self.visited = []
         self.imageView = NSImageView(frame: NSMakeRect(0, 22, 640, 458))
         self.imageView.autoresizingMask = [.ViewWidthSizable, .ViewHeightSizable]
         self.statusView = StatusView(frame: NSMakeRect(0, 0, 640, 22))
@@ -108,10 +106,7 @@ class Imager: NSWindow {
     }
 
     func last() {
-        self.i = self.files.count - 1
-        if self.i < 0 {
-            self.i = 0
-        }
+        self.i = self.files.count < 2 ? 0 : self.files.count - 1
     }
 
     func toggleTimer() {
