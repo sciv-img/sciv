@@ -80,11 +80,16 @@ class Imager: NSWindow {
     }
 
     func show() {
-        let filepath = String(self.files[self.i].path)
-        self.title = filepath
-        let image = NSImage(byReferencingFile: filepath)
+        let filepath = self.files[self.i].path
+        let filepathStr = String(filepath)
+        self.title = filepathStr
+        let image = NSImage(byReferencingFile: filepathStr)
         self.imageView.image = image
-        self.statusView.currentFile = self.i + 1
+        self.statusView.currentFile = FileInfo(
+            number: self.i + 1,
+            name: filepath.lastComponent,
+            size: image != nil ? image!.size : NSSize()
+        )
     }
 
     func next() {

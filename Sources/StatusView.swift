@@ -1,7 +1,9 @@
 import AppKit
 
+typealias FileInfo = (number: Int, name: String, size: NSSize)
+
 class StatusView: NSView {
-    var currentFile = 0 {
+    var currentFile = FileInfo(0, "", NSSize()) {
         didSet {
             self.needsDisplay = true
         }
@@ -17,21 +19,16 @@ class StatusView: NSView {
         NSColor.windowFrameColor().setFill()
         NSRectFill(frame)
 
-        let colors: [NSColor]
-        if NSApp.active {
-            colors = [
-                NSColor(deviceWhite: 180 / 0xff, alpha: 1),
-                NSColor(deviceWhite: 210 / 0xff, alpha: 1)
-            ]
-        } else {
-            colors = [
-                NSColor(deviceWhite: 225 / 0xff, alpha: 1),
-                NSColor(deviceWhite: 235 / 0xff, alpha: 1)
-            ]
-        }
+        let colors = NSApp.active ? [
+            NSColor(deviceWhite: 180 / 0xff, alpha: 1),
+            NSColor(deviceWhite: 210 / 0xff, alpha: 1)
+        ] : [
+            NSColor(deviceWhite: 225 / 0xff, alpha: 1),
+            NSColor(deviceWhite: 235 / 0xff, alpha: 1)
+        ]
         let bg = NSMakeRect(0, 0, dirtyRect.width, dirtyRect.height - 1)
         NSGradient(colors: colors)!.drawInRect(bg, angle: 90)
-        let status = "\(self.currentFile)/\(self.numberOfFiles)"
+        let status = "\(self.currentFile.number)/\(self.numberOfFiles) | \(Int(self.currentFile.size.width))x\(Int(self.currentFile.size.height)) | \(self.currentFile.name)"
         status.drawAtPoint(NSPoint(x: 6, y: 3), withAttributes: nil)
     }
 }
