@@ -1,12 +1,8 @@
 import AppKit
 import PathKit
 
-func debug(contents: AnyObject) {
-    try! String(contents).writeToFile("/tmp/sciv", atomically: false, encoding: NSUTF8StringEncoding)
-}
-
 class Imager: NSWindow {
-    var files: [Path]
+    var files: [File]
     var i: Int {
         didSet {
             self.show()
@@ -28,6 +24,8 @@ class Imager: NSWindow {
     var previousFrame: NSRect?
 
     var timer: NSTimer?
+
+    var modifier: Character?
 
     required init?(coder: NSCoder) {
         fatalError("Not implemented!")
@@ -76,15 +74,15 @@ class Imager: NSWindow {
             if !UTTypeConformsTo(uti!.takeRetainedValue(), kUTTypeImage) { // FIXME: Safety
                 continue
             }
-            self.files.append(path)
+            self.files.append(File(path))
         }
 
         self.statusView.numberOfFiles = self.files.count
-        self.i = self.files.indexOf(dirOrFilePath) ?? 0
+        self.i = self.files.indexOf({$0.path == dirOrFilePath}) ?? 0
     }
 
     func show() {
-        let filepath = String(self.files[self.i])
+        let filepath = String(self.files[self.i].path)
         self.title = filepath
         let image = NSImage(byReferencingFile: filepath)
         self.imageView.image = image
@@ -130,13 +128,31 @@ class Imager: NSWindow {
         } else {
             NSMenu.setMenuBarVisible(true)
             self.styleMask = self.defaultMask
-            self.title = String(self.files[self.i])
+            self.title = String(self.files[self.i].path)
             self.setFrame(self.previousFrame!, display: true, animate: true)
             self.backgroundColor = self.previousBackgroundColor!
         }
     }
 
+    func order(type: OrderType) {
+        let filepath = self.files[self.i].path
+        switch type {
+        case .NameAsc:
+            self.files.sortInPlace({$0.path < $1.path})
+        case .NameDesc:
+            self.files.sortInPlace({$0.path > $1.path})
+        case .MtimeAsc:
+            self.files.sortInPlace({$0.mtime < $1.mtime})
+        case .MtimeDesc:
+            self.files.sortInPlace({$0.mtime > $1.mtime})
+        case .Random:
+            self.files.shuffleInPlace()
+        }
+        self.i = self.files.indexOf({$0.path == filepath})!
+    }
+
     override func keyDown(event: NSEvent) {
+        // TODO: Also make "stop point" configurable
         let modifiers = event.modifierFlags
         switch event.charactersIgnoringModifiers! {
         case " ":
@@ -145,27 +161,28 @@ class Imager: NSWindow {
             } else {
                 self.next()
             }
-        case "r":
-            // TODO: Improve this routine, it seems weird
-            // TODO: Also make "stop point" optional
-            if self.visited.count == self.files.count {
-                return
-            }
-            self.visited.append(self.i)
-            repeat {
-                self.i = Int(arc4random_uniform(UInt32(self.files.count) - 1))
-            } while self.visited.contains(self.i)
-        case "R":
-            if self.visited.count == 0 {
-                return
-            }
-            self.i = self.visited.removeLast()
         case "s":
             self.toggleTimer() // TODO: Move timer to separate object?
         case "f":
             self.toggleFullScreen()
+        case "o":
+            self.modifier = self.modifier != nil ? nil : "o"
+            return
+        case "n" where self.modifier == "o":
+            self.order(.NameAsc)
+        case "N" where self.modifier == "o":
+            self.order(.NameDesc)
+        case "m" where self.modifier == "o":
+            self.order(.MtimeAsc)
+        case "M" where self.modifier == "o":
+            self.order(.MtimeDesc)
+        case "r" where self.modifier == "o":
+            self.order(.Random)
         default:
             super.keyDown(event)
+        }
+        if self.modifier != nil {
+            self.modifier = nil
         }
     }
 }
