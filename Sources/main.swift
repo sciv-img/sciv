@@ -103,6 +103,17 @@ class Imager: NSWindow {
         self.i -= 1
     }
 
+    func first() {
+        self.i = 0
+    }
+
+    func last() {
+        self.i = self.files.count - 1
+        if self.i < 0 {
+            self.i = 0
+        }
+    }
+
     func toggleTimer() {
         if self.timer == nil {
             self.timer = NSTimer.scheduledTimerWithTimeInterval(
@@ -178,6 +189,15 @@ class Imager: NSWindow {
             self.order(.MtimeDesc)
         case "r" where self.modifier == "o":
             self.order(.Random)
+        case "g":
+            if self.modifier == "g" {
+                self.first()
+            } else {
+                self.modifier = "g"
+                return
+            }
+        case "G":
+            self.last()
         default:
             super.keyDown(event)
         }
