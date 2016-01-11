@@ -83,12 +83,25 @@ class Imager: NSWindow {
         let filepath = self.files[self.i].path
         let filepathStr = String(filepath)
         self.title = filepathStr
-        let image = NSImage(byReferencingFile: filepathStr)
+        let maybeImage = NSImage(byReferencingFile: filepathStr)
+        if maybeImage == nil {
+            return // TODO: Show error to user
+        }
+        let image = maybeImage!
+        var square = 0, size = NSSize()
+        for rep in image.representations {
+            let maybeSquare = rep.pixelsWide * rep.pixelsHigh
+            if maybeSquare > square {
+                square = maybeSquare
+                size = NSSize(width: rep.pixelsWide, height: rep.pixelsHigh)
+            }
+        }
+        image.size = size
         self.imageView.image = image
         self.statusView.currentFile = FileInfo(
             number: self.i + 1,
             name: filepath.lastComponent,
-            size: image != nil ? image!.size : NSSize()
+            size: size
         )
     }
 
