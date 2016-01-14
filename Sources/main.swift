@@ -4,21 +4,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var windows: [Imager] = []
 
     func applicationWillFinishLaunching(aNotification: NSNotification) {
-        let tree = [
-            "Apple": [
-                NSMenuItem(title: "Quit", action: "terminate:", keyEquivalent: "q")
-            ]
-        ]
         let mainMenu = NSMenu(title: "MainMenu")
-        for (title, items) in tree {
+
+        func addMenu(title: String, items: (String, Selector, String)...) {
+            let item = mainMenu.addItemWithTitle(title, action: nil, keyEquivalent: "")!
             let menu = NSMenu(title: title)
-            if let item = mainMenu.addItemWithTitle(title, action: nil, keyEquivalent: "") {
-                mainMenu.setSubmenu(menu, forItem: item)
-                for item in items {
-                    menu.addItem(item)
-                }
+            for item in items {
+                menu.addItem(NSMenuItem(
+                    title: item.0, action: item.1, keyEquivalent: item.2
+                ))
             }
+            mainMenu.setSubmenu(menu, forItem: item)
         }
+
+        addMenu("Apple", items:
+            ("Quit sciv", "terminate:", "q")
+        )
         NSApp.mainMenu = mainMenu
     }
 
