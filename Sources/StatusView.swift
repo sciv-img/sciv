@@ -14,12 +14,18 @@ class StatusView: NSView {
         }
     }
 
+    var active = true {
+        didSet {
+            self.needsDisplay = true
+        }
+    }
+
     override func drawRect(dirtyRect: NSRect) {
         let frame = NSMakeRect(0, 21, dirtyRect.width, 1)
         NSColor.windowFrameColor().setFill()
         NSRectFill(frame)
 
-        let colors = NSApp.active ? [
+        let colors = self.active ? [
             NSColor(deviceWhite: 180 / 0xff, alpha: 1),
             NSColor(deviceWhite: 210 / 0xff, alpha: 1)
         ] : [
