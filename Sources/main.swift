@@ -3,6 +3,22 @@ import AppKit
 class AppDelegate: NSObject, NSApplicationDelegate {
     var windows: [Imager] = []
 
+    func open() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.resolvesAliases = true
+        panel.allowsMultipleSelection = true
+        if panel.runModal() == NSFileHandlingPanelOKButton {
+            for url in panel.URLs {
+                if url.path == nil {
+                    continue
+                }
+                self.application(NSApp, openFile: url.path!)
+            }
+        }
+    }
+
     func applicationWillFinishLaunching(aNotification: NSNotification) {
         let mainMenu = NSMenu(title: "MainMenu")
 
@@ -19,6 +35,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         addMenu("Apple", items:
             ("Quit sciv", "terminate:", "q")
+        )
+        addMenu("File", items:
+            ("Open...", "open", "o")
         )
         NSApp.mainMenu = mainMenu
     }
