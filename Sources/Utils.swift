@@ -1,5 +1,4 @@
 import AppKit
-import PathKit
 
 enum OrderType {
     case NameAsc

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-swift build -c release
+xcrun -sdk macosx swiftc -O -o ".build/release/sciv" Vendor/*.swift Sources/*.swift
 
 APP=".build/sciv.app"
 

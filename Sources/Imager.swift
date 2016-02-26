@@ -1,5 +1,4 @@
 import AppKit
-import PathKit
 
 class Imager: NSWindow, NSWindowDelegate {
     var files: [File]
@@ -44,7 +43,7 @@ class Imager: NSWindow, NSWindowDelegate {
             contentRect: rect,
             styleMask: self.defaultMask,
             backing: .Buffered,
-            defer: true
+            `defer`: true
         )
         let view = NSView(frame: rect)
         self.contentView = view
