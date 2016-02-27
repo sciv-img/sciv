@@ -223,6 +223,7 @@ class Imager: NSWindow, NSWindowDelegate {
 
     func windowDidBecomeKey(_: NSNotification) {
         self.statusView.active = true
+        NSMenu.setMenuBarVisible(!self.isFullScreen)
     }
 
     func windowDidResignKey(_: NSNotification) {
