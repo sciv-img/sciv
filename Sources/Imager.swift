@@ -229,4 +229,10 @@ class Imager: NSWindow, NSWindowDelegate {
     func windowDidResignKey(_: NSNotification) {
         self.statusView.active = false
     }
+
+    override var canBecomeKeyWindow: Bool {
+        get {
+            return true
+        }
+    }
 }
