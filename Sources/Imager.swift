@@ -23,7 +23,7 @@ class Imager: NSWindow, NSWindowDelegate {
 
     var timer: NSTimer?
 
-    var modifier: Character?
+    var commander: Commander
 
     required init?(coder: NSCoder) {
         fatalError("Not implemented!")
@@ -38,6 +38,8 @@ class Imager: NSWindow, NSWindowDelegate {
         self.statusView.autoresizingMask = [.ViewWidthSizable]
         self.isFullScreen = false
 
+        self.commander = Commander()
+
         let rect = NSMakeRect(200, 200, 640, 480)
         super.init(
             contentRect: rect,
@@ -50,6 +52,19 @@ class Imager: NSWindow, NSWindowDelegate {
         view.addSubview(self.imageView)
         view.addSubview(self.statusView)
         self.delegate = self
+
+        self.commander.addCommand(self.next, Key(" "))
+        self.commander.addCommand(self.previous, Key(" ", .ShiftKeyMask))
+        self.commander.addCommand(self.first, Key("g"), Key("g"))
+        self.commander.addCommand(self.last, Key("G", .ShiftKeyMask))
+        self.commander.addCommand({self.order(.NameAsc)}, Key("o"), Key("n"))
+        self.commander.addCommand({self.order(.NameDesc)}, Key("o"), Key("N", .ShiftKeyMask))
+        self.commander.addCommand({self.order(.MtimeAsc)}, Key("o"), Key("m"))
+        self.commander.addCommand({self.order(.MtimeDesc)}, Key("o"), Key("M", .ShiftKeyMask))
+        self.commander.addCommand({self.order(.Random)}, Key("o"), Key("r"))
+        self.commander.addCommand(self.toggleTimer, Key("s"))
+        self.commander.addCommand(self.toggleFullScreen, Key("f"))
+        self.commander.addCommand(self.close, Key("q"))
     }
 
     func setup(dirOrFile: String) {
@@ -177,48 +192,22 @@ class Imager: NSWindow, NSWindowDelegate {
 
     override func keyDown(event: NSEvent) {
         // TODO: Also make "stop point" configurable
-        let modifiers = event.modifierFlags
-        switch event.charactersIgnoringModifiers! {
-        case " ":
-            if modifiers.contains(.ShiftKeyMask) {
-                self.previous()
-            } else {
-                self.next()
-            }
-        case "s":
-            self.toggleTimer() // TODO: Move timer to separate object?
-        case "f":
-            self.toggleFullScreen()
-        case "o":
-            self.modifier = self.modifier != nil ? nil : "o"
+        let keys = event.charactersIgnoringModifiers!.utf16
+        let modifiers = event.modifierFlags.intersect(.DeviceIndependentModifierFlagsMask)
+        let key = Int(keys[keys.startIndex])
+
+        if key == 27 { // Escape
+            self.commander.reset()
             return
-        case "n" where self.modifier == "o":
-            self.order(.NameAsc)
-        case "N" where self.modifier == "o":
-            self.order(.NameDesc)
-        case "m" where self.modifier == "o":
-            self.order(.MtimeAsc)
-        case "M" where self.modifier == "o":
-            self.order(.MtimeDesc)
-        case "r" where self.modifier == "o":
-            self.order(.Random)
-        case "g":
-            if self.modifier == "g" {
-                self.first()
-            } else {
-                self.modifier = "g"
-                return
-            }
-        case "G":
-            self.last()
-        case "q":
-            self.close()
-        default:
-            super.keyDown(event)
         }
-        if self.modifier != nil {
-            self.modifier = nil
+
+        self.commander.addKey(Key(key, modifiers))
+        let callable = self.commander.getCallable()
+        if callable != nil {
+            callable!()
+            return
         }
+        super.keyDown(event)
     }
 
     func windowDidBecomeKey(_: NSNotification) {
