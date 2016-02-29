@@ -1,4 +1,5 @@
 import AppKit
+import PathKit
 
 class Imager: NSWindow, NSWindowDelegate {
     var files: [File]
