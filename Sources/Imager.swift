@@ -9,8 +9,8 @@ class Imager: NSWindow, NSWindowDelegate {
         }
     }
 
-    var imageView: NSImageView
-    var statusView: StatusView
+    let imageView: NSImageView
+    let statusView: StatusView
     let defaultMask = (
         NSClosableWindowMask |
         NSMiniaturizableWindowMask |
@@ -24,7 +24,7 @@ class Imager: NSWindow, NSWindowDelegate {
 
     var timer: NSTimer?
 
-    var commander: Commander
+    let commander: Commander
 
     required init?(coder: NSCoder) {
         fatalError("Not implemented!")

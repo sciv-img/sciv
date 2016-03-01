@@ -2,7 +2,7 @@ import AppKit
 
 class Key: Equatable {
     var modifiers: NSEventModifierFlags
-    var key: Int
+    let key: Int
 
     convenience init(_ key: Character, _ modifiers: NSEventModifierFlags...) {
         let utf = String(key).utf16

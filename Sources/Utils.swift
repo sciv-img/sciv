@@ -50,8 +50,8 @@ class Regex: Hashable {
 }
 
 class File {
-    var path: Path
-    var mtime: NSDate
+    let path: Path
+    let mtime: NSDate
 
     init(_ path: Path) {
         self.path = path
