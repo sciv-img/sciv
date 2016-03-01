@@ -22,11 +22,7 @@ class Key: Equatable {
     }
 }
 
-func ==(lhs: Key, rhs: Key) -> Bool {
-    return lhs.key == rhs.key && lhs.modifiers == rhs.modifiers
-}
-
-class Command: Hashable {
+class Command: CustomStringConvertible, Hashable {
     var keys: [Key]
 
     init(_ keys: [Key]) {
@@ -41,23 +37,30 @@ class Command: Hashable {
         self.keys.append(key)
     }
 
-    var hashValue: Int {
-        get {
-            return self.keys.map({"\($0.modifiers)\($0.key)"}).joinWithSeparator("").hashValue
-        }
+    var description: String {
+        return self.keys.map({"\(UnicodeScalar($0.key))"}).joinWithSeparator("")
     }
-}
 
-func ==(lhs: Command, rhs: Command) -> Bool {
-    return lhs.keys == rhs.keys
+    var hashValue: Int {
+        return self.keys.map({"\($0.modifiers)\($0.key)"}).joinWithSeparator("").hashValue
+    }
 }
 
 class Commander {
     var commands: [Command: Void -> Void] = [:]
+    var regexCommands: [Regex: [String] -> Void] = [:]
     var current: Command = Command()
 
     func addCommand(callable: Void -> Void, _ keys: Key...) {
         self.commands[Command(keys)] = callable
+    }
+
+    func addCommand(callable: [String] -> Void, _ regex: String) {
+        if let r = Regex(regex) {
+            self.regexCommands[r] = callable
+            return
+        }
+        // TODO: Return error to user
     }
 
     func addKey(key: Key) {
@@ -68,11 +71,32 @@ class Commander {
         self.current = Command()
     }
 
-    func getCallable() -> (Void -> Void)? {
-        let callable = self.commands[self.current]
-        if callable != nil {
+    func tryCall() -> Bool {
+        if let command = self.commands[self.current] {
+            command()
             self.current = Command()
+            return true
         }
-        return callable
+        for (regex, command) in self.regexCommands {
+            let (match, captures) = regex.match(String(self.current))
+            if match {
+                if captures != nil {
+                    command(captures!)
+                    self.current = Command()
+                }
+                return true
+            }
+        }
+        return false
     }
+}
+
+// MARK: Equatable
+
+func ==(lhs: Key, rhs: Key) -> Bool {
+    return lhs.key == rhs.key && lhs.modifiers == rhs.modifiers
+}
+
+func ==(lhs: Command, rhs: Command) -> Bool {
+    return lhs.keys == rhs.keys
 }

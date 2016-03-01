@@ -63,7 +63,7 @@ class Imager: NSWindow, NSWindowDelegate {
         self.commander.addCommand({self.order(.MtimeAsc)}, Key("o"), Key("m"))
         self.commander.addCommand({self.order(.MtimeDesc)}, Key("o"), Key("M", .ShiftKeyMask))
         self.commander.addCommand({self.order(.Random)}, Key("o"), Key("r"))
-        self.commander.addCommand(self.toggleTimer, Key("s"))
+        self.commander.addCommand(self.toggleTimer, "([0-9]*)s")
         self.commander.addCommand(self.toggleFullScreen, Key("f"))
         self.commander.addCommand(self.close, Key("q"))
     }
@@ -143,10 +143,12 @@ class Imager: NSWindow, NSWindowDelegate {
         self.i = self.files.count < 2 ? 0 : self.files.count - 1
     }
 
-    func toggleTimer() {
+    func toggleTimer(args: [String]) {
         if self.timer == nil {
             self.timer = NSTimer.scheduledTimerWithTimeInterval(
-                2, target: self, selector: "next", userInfo: nil, repeats: true
+                Double(args[0]) ?? 2,
+                target: self, selector: "next",
+                userInfo: nil, repeats: true
             )
             return
         }
@@ -203,9 +205,7 @@ class Imager: NSWindow, NSWindowDelegate {
         }
 
         self.commander.addKey(Key(key, modifiers))
-        let callable = self.commander.getCallable()
-        if callable != nil {
-            callable!()
+        if self.commander.tryCall() {
             return
         }
         super.keyDown(event)
