@@ -169,13 +169,13 @@ class Imager: NSWindow, NSWindowDelegate {
 
             NSMenu.setMenuBarVisible(false)
             self.styleMask = NSBorderlessWindowMask
-            self.setFrame(NSScreen.mainScreen()!.frame, display: true, animate: true) // FIXME: Safety
+            self.setFrame(NSScreen.mainScreen()!.frame, display: true, animate: false) // FIXME: Safety
             self.backgroundColor = NSColor.blackColor()
         } else {
             NSMenu.setMenuBarVisible(true)
             self.styleMask = self.defaultMask
             self.title = String(self.files[self.i].path)
-            self.setFrame(self.previousFrame!, display: true, animate: true)
+            self.setFrame(self.previousFrame!, display: true, animate: false)
             self.backgroundColor = self.previousBackgroundColor!
         }
     }
