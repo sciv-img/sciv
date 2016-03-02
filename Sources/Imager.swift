@@ -144,16 +144,20 @@ class Imager: NSWindow, NSWindowDelegate {
     }
 
     func toggleTimer(args: [String]) {
-        if self.timer == nil {
-            self.timer = NSTimer.scheduledTimerWithTimeInterval(
-                Double(args[0]) ?? 2,
-                target: self, selector: "next",
-                userInfo: nil, repeats: true
-            )
-            return
+        let time = Double(args[0])
+
+        if self.timer != nil {
+            self.timer!.invalidate()
+            self.timer = nil
+            if time == nil {
+                return
+            }
         }
-        self.timer!.invalidate()
-        self.timer = nil
+        self.timer = NSTimer.scheduledTimerWithTimeInterval(
+            time ?? 2,
+            target: self, selector: "next",
+            userInfo: nil, repeats: true
+        )
     }
 
     func toggleFullScreen() {
