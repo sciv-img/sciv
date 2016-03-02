@@ -22,7 +22,7 @@ class Key: Equatable {
     }
 }
 
-class Command: CustomStringConvertible, Hashable {
+class Command: Comparable, CustomStringConvertible, Hashable {
     var keys: [Key]
 
     init(_ keys: [Key]) {
@@ -72,23 +72,46 @@ class Commander {
     }
 
     func tryCall() -> Bool {
-        if let command = self.commands[self.current] {
-            command()
-            self.current = Command()
-            return true
+        // TODO: Refactor
+        // TODO: There may be situation where `commands` is a partial
+        // match, but `regex` is full match, it should be supported.
+        for (command, callable) in self.commands {
+            if self.current == command {
+                callable()
+                self.current = Command()
+                return true
+            }
+            if self.current < command {
+                return true
+            }
         }
-        for (regex, command) in self.regexCommands {
+        for (regex, callable) in self.regexCommands {
             let (match, captures) = regex.match(String(self.current))
             if match {
                 if captures != nil {
-                    command(captures!)
+                    callable(captures!)
                     self.current = Command()
                 }
                 return true
             }
         }
+        self.current = Command()
         return false
     }
+}
+
+// MARK: Comparable
+
+func <(lhs: Command, rhs: Command) -> Bool {
+    if lhs.keys.count > rhs.keys.count {
+        return false
+    }
+    for (i, key) in lhs.keys.enumerate() {
+        if key != rhs.keys[i] {
+            return false
+        }
+    }
+    return true
 }
 
 // MARK: Equatable
