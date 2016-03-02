@@ -3,7 +3,6 @@ import PathKit
 import pcre
 
 class Regex: Hashable {
-    // FIXME: Handle deinit
     let regex: COpaquePointer
     let hash: Int // For Hashable
 
@@ -13,7 +12,9 @@ class Regex: Hashable {
         let error = UnsafeMutablePointer<UnsafePointer<Int8>>.alloc(1)
         let offset = UnsafeMutablePointer<Int32>.alloc(1)
         defer {
+            error.dealloc(1)
             error.destroy()
+            offset.dealloc(1)
             offset.destroy()
         }
         self.regex = pcre_compile(regex, 0, error, offset, nil)
@@ -22,9 +23,14 @@ class Regex: Hashable {
         }
     }
 
+    deinit {
+        pcre_free?(UnsafeMutablePointer<Void>(self.regex))
+    }
+
     func match(string: String) -> (Bool, [String]?) {
         let ovector = UnsafeMutablePointer<Int32>.alloc(3 * 32)
         defer {
+            ovector.dealloc(3 * 32)
             ovector.destroy()
         }
         let matches = pcre_exec(
