@@ -63,7 +63,7 @@ class Imager: NSWindow, NSWindowDelegate {
         self.commander.addCommand({self.order(.MtimeAsc)}, Key("o"), Key("m"))
         self.commander.addCommand({self.order(.MtimeDesc)}, Key("o"), Key("M", .ShiftKeyMask))
         self.commander.addCommand({self.order(.Random)}, Key("o"), Key("r"))
-        self.commander.addCommand(self.toggleTimer, "([0-9]*)s")
+        self.commander.addCommand(self.toggleTimer, "^([0-9]*)s")
         self.commander.addCommand(self.toggleFullScreen, Key("f"))
         self.commander.addCommand(self.close, Key("q"))
     }
