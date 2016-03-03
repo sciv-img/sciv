@@ -199,6 +199,10 @@ class Imager: NSWindow, NSWindowDelegate {
 
     override func keyDown(event: NSEvent) {
         // TODO: Also make "stop point" configurable
+        defer {
+            self.statusView.command = String(self.commander.current)
+        }
+
         let keys = event.charactersIgnoringModifiers!.utf16
         let modifiers = event.modifierFlags.intersect(.DeviceIndependentModifierFlagsMask)
         let key = Int(keys[keys.startIndex])
@@ -209,10 +213,10 @@ class Imager: NSWindow, NSWindowDelegate {
         }
 
         self.commander.addKey(Key(key, modifiers))
-        if self.commander.tryCall() {
-            return
+        self.statusView.command = String(self.commander.current)
+        if !self.commander.tryCall() {
+            super.keyDown(event)
         }
-        super.keyDown(event)
     }
 
     func windowDidBecomeKey(_: NSNotification) {
