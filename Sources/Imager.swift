@@ -69,7 +69,6 @@ class Imager: NSWindow, NSWindowDelegate {
     }
 
     func setup(dirOrFile: String) {
-        // TODO: Handle errors
         var dir: Path
         let dirOrFilePath = Path(dirOrFile)
         if dirOrFilePath.isFile {
@@ -79,16 +78,18 @@ class Imager: NSWindow, NSWindowDelegate {
         } else {
             dir = dirOrFilePath
         }
-        for path in try! dir.children() {  // FIXME: Safety
+        for path in (try? dir.children()) ?? [] {
             let ext = path.`extension`
             if ext == nil {
                 continue
             }
-            let uti = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, ext!, nil)
-            if !UTTypeConformsTo(uti!.takeRetainedValue(), kUTTypeImage) { // FIXME: Safety
-                continue
+            let kUTTCFE = kUTTagClassFilenameExtension
+            if let uti = UTTypeCreatePreferredIdentifierForTag(kUTTCFE, ext!, nil) {
+                if !UTTypeConformsTo(uti.takeRetainedValue(), kUTTypeImage) {
+                    continue
+                }
+                self.files.append(File(path))
             }
-            self.files.append(File(path))
         }
 
         self.statusView.numberOfFiles = self.files.count
@@ -164,20 +165,25 @@ class Imager: NSWindow, NSWindowDelegate {
         self.isFullScreen = !self.isFullScreen
 
         if self.isFullScreen {
+            guard let screen = NSScreen.mainScreen() else {
+                self.isFullScreen = false
+                return
+            }
+
             self.previousBackgroundColor = self.backgroundColor
             self.previousFrame = self.frame
 
             NSMenu.setMenuBarVisible(false)
             self.styleMask = NSBorderlessWindowMask
-            self.setFrame(NSScreen.mainScreen()!.frame, display: true, animate: false) // FIXME: Safety
+            self.setFrame(screen.frame, display: true, animate: false)
             self.backgroundColor = NSColor.blackColor()
-        } else {
-            NSMenu.setMenuBarVisible(true)
-            self.styleMask = self.defaultMask
-            self.title = String(self.files[self.i].path)
-            self.setFrame(self.previousFrame!, display: true, animate: false)
-            self.backgroundColor = self.previousBackgroundColor!
+            return
         }
+        NSMenu.setMenuBarVisible(true)
+        self.styleMask = self.defaultMask
+        self.title = String(self.files[self.i].path)
+        self.setFrame(self.previousFrame!, display: true, animate: false)
+        self.backgroundColor = self.previousBackgroundColor!
     }
 
     func order(type: OrderType) {
