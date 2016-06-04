@@ -1,0 +1,149 @@
+import EonilFileSystemEvents
+import PathKit
+
+enum OrderType {
+    case None
+    case NameAsc
+    case NameDesc
+    case MtimeAsc
+    case MtimeDesc
+    case Random
+}
+
+extension Array {
+    mutating func shuffleInPlace() {
+        for i in (self.count - 1).stride(through: 1, by: -1) {
+            let j = Int(arc4random_uniform(UInt32(i)))
+            swap(&self[i], &self[j])
+        }
+    }
+}
+
+class File {
+    let path: Path
+    let mtime: NSDate
+
+    init(_ path: Path) {
+        self.path = path
+
+        var st = stat()
+        stat(String(path), &st)
+        self.mtime = NSDate(timeIntervalSince1970: Double(st.st_mtimespec.tv_sec))
+    }
+}
+
+class Files {
+    var callback: ()->()
+
+    var files: [File]
+    var i: Int {
+        didSet {
+            if self.i < 0 {
+                self.i = 0
+            } else if self.i >= self.files.count {
+                self.i = self.files.count - 1
+            }
+            self.callback()
+        }
+    }
+    var o: OrderType {
+        didSet {
+            let filepath = self.files[self.i].path
+            switch self.o {
+            case .NameAsc:
+                self.files.sortInPlace({$0.path < $1.path})
+            case .NameDesc:
+                self.files.sortInPlace({$0.path > $1.path})
+            case .MtimeAsc:
+                self.files.sortInPlace({$0.mtime < $1.mtime})
+            case .MtimeDesc:
+                self.files.sortInPlace({$0.mtime > $1.mtime})
+            case .Random:
+                self.files.shuffleInPlace()
+            default:
+                return
+            }
+            self.i = self.files.indexOf({$0.path == filepath})!
+        }
+    }
+
+    var dir: Path
+    var monitor: FileSystemEventMonitor?
+
+    init(_ dirOrFile: String, _ callback: ()->()) {
+        self.files = []
+        self.o = .None
+        let dirOrFilePath = Path(dirOrFile)
+        if dirOrFilePath.isFile {
+            self.dir = Files.getDirPath(dirOrFilePath)
+        } else {
+            self.dir = dirOrFilePath
+        }
+        self.callback = callback
+
+        for path in (try? dir.children()) ?? [] {
+            let ext = path.`extension`
+            if ext == nil {
+                continue
+            }
+            let kUTTCFE = kUTTagClassFilenameExtension
+            if let uti = UTTypeCreatePreferredIdentifierForTag(kUTTCFE, ext!, nil) {
+                if !UTTypeConformsTo(uti.takeRetainedValue(), kUTTypeImage) {
+                    continue
+                }
+                self.files.append(File(path))
+            }
+        }
+
+        self.i = self.files.indexOf({$0.path == dirOrFilePath}) ?? 0
+
+        self.monitor = FileSystemEventMonitor(
+            pathsToWatch: ["/"], callback: self.eventHandler
+        )
+    }
+
+    private class func getDirPath(path: Path) -> Path {
+        // TODO: Move this (done nicely) into PathKit
+        var components = path.components
+        if components[0] == "/" {
+            components[0] = ""
+        }
+        return Path(components[0..<components.count - 1].joinWithSeparator(Path.separator))
+    }
+
+    private func eventHandler(events: [FileSystemEvent]) {
+        Swift.print(events)
+        if events.count > 2 {
+            return
+        }
+
+        let event1Path = Path(events[0].path)
+        if Files.getDirPath(event1Path) != self.dir {
+            return
+        }
+
+        switch String(events[0].flag) {
+        case "ItemRenamed":
+            let event2Path = Path(events[1].path)
+            if Files.getDirPath(event2Path) != self.dir {
+                let idx = self.files.indexOf({$0.path == event1Path})
+                if idx == nil {
+                    break
+                }
+                let i = self.i
+                self.files.removeAtIndex(idx!)
+                self.i = i
+            }
+        default:
+            break
+        }
+    }
+
+    var current: Path {
+        return self.files[self.i].path
+    }
+
+    var count: Int {
+        return self.files.count
+    }
+}

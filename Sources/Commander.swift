@@ -46,6 +46,7 @@ class Command: Comparable, CustomStringConvertible, Hashable {
     }
 }
 
+// TODO: Regex with ModifierKeys
 class Commander {
     var commands: [Command: Void -> Void] = [:]
     var regexCommands: [Regex: [String] -> Void] = [:]

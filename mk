@@ -9,5 +9,7 @@ rm -rf "$APP"
 mkdir -p "$APP"/Contents/{MacOS,Frameworks}
 cp ".build/release/sciv" "$APP/Contents/MacOS"
 cp Info.plist "$APP/Contents"
-cp -R "Carthage/Build/Mac/PathKit.framework" "$APP/Contents/Frameworks/"
+for FRAMEWORK in Carthage/Build/Mac/*.framework; do
+    cp -R "$FRAMEWORK" "$APP/Contents/Frameworks/"
+done
 install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/sciv"

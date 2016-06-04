@@ -1,5 +1,4 @@
 import AppKit
-import PathKit
 import pcre
 
 class Regex: Hashable {
@@ -53,36 +52,6 @@ class Regex: Hashable {
     var hashValue: Int {
         return self.hash
     }
-}
-
-class File {
-    let path: Path
-    let mtime: NSDate
-
-    init(_ path: Path) {
-        self.path = path
-
-        var st = stat()
-        stat(String(path), &st)
-        self.mtime = NSDate(timeIntervalSince1970: Double(st.st_mtimespec.tv_sec))
-    }
-}
-
-extension Array {
-    mutating func shuffleInPlace() {
-        for i in (self.count - 1).stride(through: 1, by: -1) {
-            let j = Int(arc4random_uniform(UInt32(i)))
-            swap(&self[i], &self[j])
-        }
-    }
-}
-
-enum OrderType {
-    case NameAsc
-    case NameDesc
-    case MtimeAsc
-    case MtimeDesc
-    case Random
 }
 
 extension NSDate: Comparable {}

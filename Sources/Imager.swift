@@ -2,12 +2,7 @@ import AppKit
 import PathKit
 
 class Imager: NSWindow, NSWindowDelegate {
-    var files: [File]
-    var i: Int {
-        didSet {
-            self.show()
-        }
-    }
+    var files: Files!
 
     let imageView: NSImageView
     let statusView: StatusView
@@ -31,8 +26,6 @@ class Imager: NSWindow, NSWindowDelegate {
     }
 
     init() {
-        self.files = []
-        self.i = 0
         self.imageView = NSImageView(frame: NSMakeRect(0, 22, 640, 458))
         self.imageView.autoresizingMask = [.ViewWidthSizable, .ViewHeightSizable]
         self.statusView = StatusView(frame: NSMakeRect(0, 0, 640, 22))
@@ -54,50 +47,28 @@ class Imager: NSWindow, NSWindowDelegate {
         view.addSubview(self.statusView)
         self.delegate = self
 
-        self.commander.addCommand(self.next, Key(" "))
+        self.commander.addCommand(self.next, "^([0-9]*) ")
         self.commander.addCommand(self.previous, Key(" ", .ShiftKeyMask))
         self.commander.addCommand(self.first, Key("g"), Key("g"))
         self.commander.addCommand(self.last, Key("G", .ShiftKeyMask))
-        self.commander.addCommand({self.order(.NameAsc)}, Key("o"), Key("n"))
-        self.commander.addCommand({self.order(.NameDesc)}, Key("o"), Key("N", .ShiftKeyMask))
-        self.commander.addCommand({self.order(.MtimeAsc)}, Key("o"), Key("m"))
-        self.commander.addCommand({self.order(.MtimeDesc)}, Key("o"), Key("M", .ShiftKeyMask))
-        self.commander.addCommand({self.order(.Random)}, Key("o"), Key("r"))
+        self.commander.addCommand({self.files.o = .NameAsc}, Key("o"), Key("n"))
+        self.commander.addCommand({self.files.o = .NameDesc}, Key("o"), Key("N", .ShiftKeyMask))
+        self.commander.addCommand({self.files.o = .MtimeAsc}, Key("o"), Key("m"))
+        self.commander.addCommand({self.files.o = .MtimeDesc}, Key("o"), Key("M", .ShiftKeyMask))
+        self.commander.addCommand({self.files.o = .Random}, Key("o"), Key("r"))
         self.commander.addCommand(self.toggleTimer, "^([0-9]*)s")
         self.commander.addCommand(self.toggleFullScreen, Key("f"))
+        self.commander.addCommand(self.runCommand, "c(.)")
         self.commander.addCommand(self.close, Key("q"))
     }
 
     func setup(dirOrFile: String) {
-        var dir: Path
-        let dirOrFilePath = Path(dirOrFile)
-        if dirOrFilePath.isFile {
-            // TODO: Move this (done nicely) into PathKit
-            let components = dirOrFilePath.components
-            dir = Path(components[0..<components.count - 1].joinWithSeparator(Path.separator))
-        } else {
-            dir = dirOrFilePath
-        }
-        for path in (try? dir.children()) ?? [] {
-            let ext = path.`extension`
-            if ext == nil {
-                continue
-            }
-            let kUTTCFE = kUTTagClassFilenameExtension
-            if let uti = UTTypeCreatePreferredIdentifierForTag(kUTTCFE, ext!, nil) {
-                if !UTTypeConformsTo(uti.takeRetainedValue(), kUTTypeImage) {
-                    continue
-                }
-                self.files.append(File(path))
-            }
-        }
-
-        self.statusView.numberOfFiles = self.files.count
-        self.i = self.files.indexOf({$0.path == dirOrFilePath}) ?? 0
+        self.files = Files(dirOrFile, self.show)
+        self.show()
     }
 
     func show() {
-        let filepath = self.files[self.i].path
+        let filepath = self.files.current
         let filepathStr = String(filepath)
         self.title = filepathStr
         let maybeImage = NSImage(byReferencingFile: filepathStr)
@@ -116,32 +87,38 @@ class Imager: NSWindow, NSWindowDelegate {
         image.size = size
         self.imageView.image = image
         self.statusView.currentFile = FileInfo(
-            number: self.i + 1,
+            number: self.files.i + 1,
             name: filepath.lastComponent,
             size: size
         )
+        self.statusView.numberOfFiles = self.files.count
+    }
+
+    func next(args: [String]) {
+        let delta = Int(args[0]) ?? 1
+        if self.files.i + delta >= self.files.count {
+            return
+        }
+        self.files.i += delta
     }
 
     func next() {
-        if self.i + 1 >= self.files.count {
-            return
-        }
-        self.i += 1
+        self.next(["1"])
     }
 
     func previous() {
-        if self.i <= 0 {
+        if self.files.i <= 0 {
             return
         }
-        self.i -= 1
+        self.files.i -= 1
     }
 
     func first() {
-        self.i = 0
+        self.files.i = 0
     }
 
     func last() {
-        self.i = self.files.count < 2 ? 0 : self.files.count - 1
+        self.files.i = self.files.count < 2 ? 0 : self.files.count - 1
     }
 
     func toggleTimer(args: [String]) {
@@ -181,26 +158,43 @@ class Imager: NSWindow, NSWindowDelegate {
         }
         NSMenu.setMenuBarVisible(true)
         self.styleMask = self.defaultMask
-        self.title = String(self.files[self.i].path)
+        self.title = String(self.files.current)
         self.setFrame(self.previousFrame!, display: true, animate: false)
         self.backgroundColor = self.previousBackgroundColor!
     }
 
-    func order(type: OrderType) {
-        let filepath = self.files[self.i].path
-        switch type {
-        case .NameAsc:
-            self.files.sortInPlace({$0.path < $1.path})
-        case .NameDesc:
-            self.files.sortInPlace({$0.path > $1.path})
-        case .MtimeAsc:
-            self.files.sortInPlace({$0.mtime < $1.mtime})
-        case .MtimeDesc:
-            self.files.sortInPlace({$0.mtime > $1.mtime})
-        case .Random:
-            self.files.shuffleInPlace()
+    func runCommand(args: [String]) {
+        let supDirs = NSFileManager.defaultManager().URLsForDirectory(
+            .ApplicationSupportDirectory, inDomains:.UserDomainMask
+        )
+        var runFile: String?
+        for dir in supDirs {
+            if dir.path == nil {
+                continue
+            }
+            let maybeRunFile = Path(dir.path!) + "sciv" + "run.sh"
+            if maybeRunFile.exists {
+                runFile = String(maybeRunFile)
+            }
         }
-        self.i = self.files.indexOf({$0.path == filepath})!
+        if runFile == nil {
+            return // TODO: Tell user
+        }
+
+        let pipe = NSPipe()
+        let task = NSTask()
+        task.launchPath = runFile!
+        task.arguments = args
+        task.standardInput = pipe
+        task.launch()
+        let handle = pipe.fileHandleForWriting
+        let path = String(self.files.current)
+        handle.writeData(path.dataUsingEncoding(NSUTF8StringEncoding)!) // FIXME: Check error
+        handle.closeFile()
+        task.waitUntilExit()
+        if task.terminationStatus != 0 {
+            // TODO: Tell user
+        }
     }
 
     override func keyDown(event: NSEvent) {
