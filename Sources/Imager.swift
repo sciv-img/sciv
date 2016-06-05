@@ -6,6 +6,7 @@ class Imager: NSWindow, NSWindowDelegate {
 
     let imageView: NSImageView
     let statusView: StatusView
+    var alertView: AlertView!
     let defaultMask = (
         NSClosableWindowMask |
         NSMiniaturizableWindowMask |
@@ -60,6 +61,36 @@ class Imager: NSWindow, NSWindowDelegate {
         self.commander.addCommand(self.toggleFullScreen, Key("f"))
         self.commander.addCommand(self.runCommand, "c(.)")
         self.commander.addCommand(self.close, Key("q"))
+        self.commander.addCommand(self.alertHide, Key("a"), Key("h"))
+    }
+
+    func alertShow(msg: String) {
+        if self.alertView != nil {
+            self.alertHide()
+        }
+
+        let view = self.contentView!
+
+        self.alertView = AlertView(
+            frame: NSMakeRect(0, view.frame.height - 30, view.frame.width, 30),
+            message: msg,
+            callback: self.alertHide
+        )
+        view.addSubview(self.alertView)
+
+        let iframe = self.imageView.frame
+        self.imageView.setFrameSize(NSMakeSize(iframe.width, iframe.height - 30))
+    }
+
+    func alertHide() {
+        if self.alertView == nil {
+            return
+        }
+
+        self.alertView.removeFromSuperview()
+        self.alertView = nil
+        let iframe = self.imageView.frame
+        self.imageView.setFrameSize(NSMakeSize(iframe.width, iframe.height + 30))
     }
 
     func setup(dirOrFile: String) {
@@ -68,15 +99,27 @@ class Imager: NSWindow, NSWindowDelegate {
     }
 
     func show() {
+        self.alertHide()
+
         let filepath = self.files.current
         let filepathStr = String(filepath)
+        var size = NSSize()
+
         self.title = filepathStr
+        self.statusView.currentFile = FileInfo(
+            number: self.files.i + 1,
+            name: filepath.lastComponent,
+            size: size
+        )
+        self.statusView.numberOfFiles = self.files.count
+
         let maybeImage = NSImage(byReferencingFile: filepathStr)
         if maybeImage == nil {
-            return // TODO: Show error to user
+            self.alertShow("Cannot open image file: NSImage returned nil")
+            return
         }
         let image = maybeImage!
-        var square = 0, size = NSSize()
+        var square = 0
         for rep in image.representations {
             let maybeSquare = rep.pixelsWide * rep.pixelsHigh
             if maybeSquare > square {
@@ -86,12 +129,7 @@ class Imager: NSWindow, NSWindowDelegate {
         }
         image.size = size
         self.imageView.image = image
-        self.statusView.currentFile = FileInfo(
-            number: self.files.i + 1,
-            name: filepath.lastComponent,
-            size: size
-        )
-        self.statusView.numberOfFiles = self.files.count
+        self.statusView.currentFile.size = size
     }
 
     func next(args: [String]) {
@@ -178,7 +216,8 @@ class Imager: NSWindow, NSWindowDelegate {
             }
         }
         if runFile == nil {
-            return // TODO: Tell user
+            self.alertShow("Could not find the run.sh file in any known location")
+            return
         }
 
         let pipe = NSPipe()
@@ -193,7 +232,7 @@ class Imager: NSWindow, NSWindowDelegate {
         handle.closeFile()
         task.waitUntilExit()
         if task.terminationStatus != 0 {
-            // TODO: Tell user
+            self.alertShow("Command returned with exit code `\(task.terminationStatus)`")
         }
     }
 
@@ -226,6 +265,13 @@ class Imager: NSWindow, NSWindowDelegate {
 
     func windowDidResignKey(_: NSNotification) {
         self.statusView.active = false
+    }
+
+    func windowDidResize(_: NSNotification) {
+        if self.alertView != nil {
+            let frame = self.contentView!.frame
+            self.alertView.setFrameOrigin(NSMakePoint(0, frame.height - 30))
+        }
     }
 
     override var canBecomeKeyWindow: Bool {
