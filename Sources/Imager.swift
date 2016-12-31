@@ -45,13 +45,13 @@ class Imager: NSWindow, NSWindowDelegate {
         self.delegate = self
 
         self.commander.addCommand(self.next, "^([0-9]*) ")
-        self.commander.addCommand(self.previous, Key(" ", .ShiftKeyMask))
+        self.commander.addCommand(self.previous, Key(" ", .shift))
         self.commander.addCommand(self.first, Key("g"), Key("g"))
-        self.commander.addCommand(self.last, Key("G", .ShiftKeyMask))
+        self.commander.addCommand(self.last, Key("G", .shift))
         self.commander.addCommand({self.files.o = .NameAsc}, Key("o"), Key("n"))
-        self.commander.addCommand({self.files.o = .NameDesc}, Key("o"), Key("N", .ShiftKeyMask))
+        self.commander.addCommand({self.files.o = .NameDesc}, Key("o"), Key("N", .shift))
         self.commander.addCommand({self.files.o = .MtimeAsc}, Key("o"), Key("m"))
-        self.commander.addCommand({self.files.o = .MtimeDesc}, Key("o"), Key("M", .ShiftKeyMask))
+        self.commander.addCommand({self.files.o = .MtimeDesc}, Key("o"), Key("M", .shift))
         self.commander.addCommand({self.files.o = .Random}, Key("o"), Key("r"))
         self.commander.addCommand(self.toggleTimer, "^([0-9]*)s")
         self.commander.addCommand(self.toggleFullScreen, Key("f"))

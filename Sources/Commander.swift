@@ -52,11 +52,11 @@ class Commander {
     var regexCommands: [Regex: ([String]) -> Void] = [:]
     var current: Command = Command()
 
-    func addCommand(callable: Void -> Void, _ keys: Key...) {
+    func addCommand(_ callable: @escaping (Void) -> Void, _ keys: Key...) {
         self.commands[Command(keys)] = callable
     }
 
-    func addCommand(callable: [String] -> Void, _ regex: String) {
+    func addCommand(_ callable: @escaping ([String]) -> Void, _ regex: String) {
         if let r = Regex(regex) {
             self.regexCommands[r] = callable
             return
