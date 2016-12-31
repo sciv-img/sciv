@@ -10,34 +10,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         panel.resolvesAliases = true
         panel.allowsMultipleSelection = true
         if panel.runModal() == NSFileHandlingPanelOKButton {
-            for url in panel.URLs {
-                if url.path == nil {
+            for url in panel.urls {
+                if url.path == "" {
                     continue
                 }
-                self.application(NSApp, openFile: url.path!)
+                _ = self.application(NSApp, openFile: url.path)
             }
         }
     }
 
-    func applicationWillFinishLaunching(aNotification: NSNotification) {
+    func applicationWillFinishLaunching(_ notification: Notification) {
         let mainMenu = NSMenu(title: "MainMenu")
 
         func addMenu(title: String, items: (String, Selector, String)...) {
-            let item = mainMenu.addItemWithTitle(title, action: nil, keyEquivalent: "")!
+            let item = mainMenu.addItem(withTitle: title, action: nil, keyEquivalent: "")
             let menu = NSMenu(title: title)
             for item in items {
                 menu.addItem(NSMenuItem(
                     title: item.0, action: item.1, keyEquivalent: item.2
                 ))
             }
-            mainMenu.setSubmenu(menu, forItem: item)
+            mainMenu.setSubmenu(menu, for: item)
         }
 
-        addMenu("Apple", items:
-            ("Quit sciv", "terminate:", "q")
+        addMenu(title: "Apple", items:
+            ("Quit sciv", #selector(NSApp.terminate), "q")
         )
-        addMenu("File", items:
-            ("Open...", "open", "o")
+        addMenu(title: "File", items:
+            ("Open...", #selector(AppDelegate.open), "o")
         )
         NSApp.mainMenu = mainMenu
     }
@@ -50,16 +50,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(app: NSApplication) -> Bool {
+    func applicationShouldTerminateAfterLastWindowClosed(_ app: NSApplication) -> Bool {
         return true // TODO: Make this configurable
     }
 }
 
-let app = NSApplication.sharedApplication()
+let app = NSApplication.shared()
 let delegate = AppDelegate()
 
-app.setActivationPolicy(.Regular)
-app.activateIgnoringOtherApps(true) // FIXME: Should not be necessary
+app.setActivationPolicy(.regular)
+app.activate(ignoringOtherApps: true) // FIXME: Should not be necessary
 app.delegate = delegate
 
 app.run()

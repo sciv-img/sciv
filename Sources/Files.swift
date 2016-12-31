@@ -12,7 +12,7 @@ enum OrderType {
 
 extension Array {
     mutating func shuffleInPlace() {
-        for i in (self.count - 1).stride(through: 1, by: -1) {
+        for i in stride(from: self.count - 1, through: 1, by: -1) {
             let j = Int(arc4random_uniform(UInt32(i)))
             swap(&self[i], &self[j])
         }
@@ -21,14 +21,14 @@ extension Array {
 
 class File {
     let path: Path
-    let mtime: NSDate
+    let mtime: Date
 
     init(_ path: Path) {
         self.path = path
 
         var st = stat()
-        stat(String(path), &st)
-        self.mtime = NSDate(timeIntervalSince1970: Double(st.st_mtimespec.tv_sec))
+        stat(String(describing: path), &st)
+        self.mtime = Date(timeIntervalSince1970: Double(st.st_mtimespec.tv_sec))
     }
 }
 
@@ -51,31 +51,31 @@ class Files {
             let filepath = self.files[self.i].path
             switch self.o {
             case .NameAsc:
-                self.files.sortInPlace({$0.path < $1.path})
+                self.files.sort(by: {$0.path < $1.path})
             case .NameDesc:
-                self.files.sortInPlace({$0.path > $1.path})
+                self.files.sort(by: {$0.path > $1.path})
             case .MtimeAsc:
-                self.files.sortInPlace({$0.mtime < $1.mtime})
+                self.files.sort(by: {$0.mtime < $1.mtime})
             case .MtimeDesc:
-                self.files.sortInPlace({$0.mtime > $1.mtime})
+                self.files.sort(by: {$0.mtime > $1.mtime})
             case .Random:
                 self.files.shuffleInPlace()
             default:
                 return
             }
-            self.i = self.files.indexOf({$0.path == filepath})!
+            self.i = self.files.index(where: {$0.path == filepath})!
         }
     }
 
     var dir: Path
     var monitor: FileSystemEventMonitor?
 
-    init(_ dirOrFile: String, _ callback: ()->()) {
+    init(_ dirOrFile: String, _ callback: @escaping ()->()) {
         self.files = []
         self.o = .None
         let dirOrFilePath = Path(dirOrFile)
         if dirOrFilePath.isFile {
-            self.dir = Files.getDirPath(dirOrFilePath)
+            self.dir = Files.getDirPath(path: dirOrFilePath)
         } else {
             self.dir = dirOrFilePath
         }
@@ -87,7 +87,7 @@ class Files {
                 continue
             }
             let kUTTCFE = kUTTagClassFilenameExtension
-            if let uti = UTTypeCreatePreferredIdentifierForTag(kUTTCFE, ext!, nil) {
+            if let uti = UTTypeCreatePreferredIdentifierForTag(kUTTCFE, ext! as CFString, nil) {
                 if !UTTypeConformsTo(uti.takeRetainedValue(), kUTTypeImage) {
                     continue
                 }
@@ -95,7 +95,7 @@ class Files {
             }
         }
 
-        self.i = self.files.indexOf({$0.path == dirOrFilePath}) ?? 0
+        self.i = self.files.index(where: {$0.path == dirOrFilePath}) ?? 0
 
         self.monitor = FileSystemEventMonitor(
             pathsToWatch: ["/"], callback: self.eventHandler
@@ -108,7 +108,7 @@ class Files {
         if components[0] == "/" {
             components[0] = ""
         }
-        return Path(components[0..<components.count - 1].joinWithSeparator(Path.separator))
+        return Path(components[0..<components.count - 1].joined(separator: Path.separator))
     }
 
     private func eventHandler(events: [FileSystemEvent]) {
@@ -118,20 +118,20 @@ class Files {
         }
 
         let event1Path = Path(events[0].path)
-        if Files.getDirPath(event1Path) != self.dir {
+        if Files.getDirPath(path: event1Path) != self.dir {
             return
         }
 
-        switch String(events[0].flag) {
+        switch String(describing: events[0].flag) {
         case "ItemRenamed":
             let event2Path = Path(events[1].path)
-            if Files.getDirPath(event2Path) != self.dir {
-                let idx = self.files.indexOf({$0.path == event1Path})
+            if Files.getDirPath(path: event2Path) != self.dir {
+                let idx = self.files.index(where: {$0.path == event1Path})
                 if idx == nil {
                     break
                 }
                 let i = self.i
-                self.files.removeAtIndex(idx!)
+                self.files.remove(at: idx!)
                 self.i = i
             }
         default:

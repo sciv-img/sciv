@@ -7,30 +7,26 @@ class Imager: NSWindow, NSWindowDelegate {
     let imageView: NSImageView
     let statusView: StatusView
     var alertView: AlertView!
-    let defaultMask = (
-        NSClosableWindowMask |
-        NSMiniaturizableWindowMask |
-        NSResizableWindowMask |
-        NSTitledWindowMask
-    )
+    let defaultMask: NSWindowStyleMask = [
+        .closable,
+        .miniaturizable,
+        .resizable,
+        .titled,
+    ]
 
     var isFullScreen: Bool
     var previousBackgroundColor: NSColor?
     var previousFrame: NSRect?
 
-    var timer: NSTimer?
+    var timer: Timer?
 
     let commander: Commander
 
-    required init?(coder: NSCoder) {
-        fatalError("Not implemented!")
-    }
-
     init() {
         self.imageView = NSImageView(frame: NSMakeRect(0, 22, 640, 458))
-        self.imageView.autoresizingMask = [.ViewWidthSizable, .ViewHeightSizable]
+        self.imageView.autoresizingMask = [.viewWidthSizable, .viewHeightSizable]
         self.statusView = StatusView(frame: NSMakeRect(0, 0, 640, 22))
-        self.statusView.autoresizingMask = [.ViewWidthSizable]
+        self.statusView.autoresizingMask = [.viewWidthSizable]
         self.isFullScreen = false
 
         self.commander = Commander()
@@ -39,8 +35,8 @@ class Imager: NSWindow, NSWindowDelegate {
         super.init(
             contentRect: rect,
             styleMask: self.defaultMask,
-            backing: .Buffered,
-            `defer`: true
+            backing: .buffered,
+            defer: true
         )
         let view = NSView(frame: rect)
         self.contentView = view
@@ -93,7 +89,7 @@ class Imager: NSWindow, NSWindowDelegate {
         self.imageView.setFrameSize(NSMakeSize(iframe.width, iframe.height + 30))
     }
 
-    func setup(dirOrFile: String) {
+    func setup(_ dirOrFile: String) {
         self.files = Files(dirOrFile, self.show)
         self.show()
     }
@@ -102,7 +98,7 @@ class Imager: NSWindow, NSWindowDelegate {
         self.alertHide()
 
         let filepath = self.files.current
-        let filepathStr = String(filepath)
+        let filepathStr = String(describing: filepath)
         var size = NSSize()
 
         self.title = filepathStr
@@ -132,7 +128,7 @@ class Imager: NSWindow, NSWindowDelegate {
         self.statusView.currentFile.size = size
     }
 
-    func next(args: [String]) {
+    func next(_ args: [String]) {
         let delta = Int(args[0]) ?? 1
         if self.files.i + delta >= self.files.count {
             return
@@ -169,9 +165,9 @@ class Imager: NSWindow, NSWindowDelegate {
                 return
             }
         }
-        self.timer = NSTimer.scheduledTimerWithTimeInterval(
-            time ?? 2,
-            target: self, selector: "next",
+        self.timer = Timer.scheduledTimer(
+            timeInterval: time ?? 2,
+            target: self, selector: #selector(Imager.next as (Imager) -> () -> ()),
             userInfo: nil, repeats: true
         )
     }
@@ -180,7 +176,7 @@ class Imager: NSWindow, NSWindowDelegate {
         self.isFullScreen = !self.isFullScreen
 
         if self.isFullScreen {
-            guard let screen = NSScreen.mainScreen() else {
+            guard let screen = NSScreen.main() else {
                 self.isFullScreen = false
                 return
             }
@@ -191,28 +187,28 @@ class Imager: NSWindow, NSWindowDelegate {
             NSMenu.setMenuBarVisible(false)
             self.styleMask = NSBorderlessWindowMask
             self.setFrame(screen.frame, display: true, animate: false)
-            self.backgroundColor = NSColor.blackColor()
+            self.backgroundColor = NSColor.black
             return
         }
         NSMenu.setMenuBarVisible(true)
         self.styleMask = self.defaultMask
-        self.title = String(self.files.current)
+        self.title = String(describing: self.files.current)
         self.setFrame(self.previousFrame!, display: true, animate: false)
         self.backgroundColor = self.previousBackgroundColor!
     }
 
     func runCommand(args: [String]) {
-        let supDirs = NSFileManager.defaultManager().URLsForDirectory(
-            .ApplicationSupportDirectory, inDomains:.UserDomainMask
+        let supDirs = FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
         )
         var runFile: String?
         for dir in supDirs {
-            if dir.path == nil {
+            if dir.path == "" {
                 continue
             }
-            let maybeRunFile = Path(dir.path!) + "sciv" + "run.sh"
+            let maybeRunFile = Path(dir.path) + "sciv" + "run.sh"
             if maybeRunFile.exists {
-                runFile = String(maybeRunFile)
+                runFile = String(describing: maybeRunFile)
             }
         }
         if runFile == nil {
@@ -220,15 +216,15 @@ class Imager: NSWindow, NSWindowDelegate {
             return
         }
 
-        let pipe = NSPipe()
-        let task = NSTask()
+        let pipe = Pipe()
+        let task = Process()
         task.launchPath = runFile!
         task.arguments = args
         task.standardInput = pipe
         task.launch()
         let handle = pipe.fileHandleForWriting
-        let path = String(self.files.current)
-        handle.writeData(path.dataUsingEncoding(NSUTF8StringEncoding)!) // FIXME: Check error
+        let path = String(describing: self.files.current)
+        handle.write(path.data(using: String.Encoding.utf8)!) // FIXME: Check error
         handle.closeFile()
         task.waitUntilExit()
         if task.terminationStatus != 0 {
@@ -236,14 +232,14 @@ class Imager: NSWindow, NSWindowDelegate {
         }
     }
 
-    override func keyDown(event: NSEvent) {
+    override func keyDown(with event: NSEvent) {
         // TODO: Also make "stop point" configurable
         defer {
-            self.statusView.command = String(self.commander.current)
+            self.statusView.command = String(describing: self.commander.current)
         }
 
         let keys = event.charactersIgnoringModifiers!.utf16
-        let modifiers = event.modifierFlags.intersect(.DeviceIndependentModifierFlagsMask)
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         let key = Int(keys[keys.startIndex])
 
         if key == 27 { // Escape
@@ -252,29 +248,29 @@ class Imager: NSWindow, NSWindowDelegate {
         }
 
         self.commander.addKey(Key(key, modifiers))
-        self.statusView.command = String(self.commander.current)
+        self.statusView.command = String(describing: self.commander.current)
         if !self.commander.tryCall() {
-            super.keyDown(event)
+            super.keyDown(with: event)
         }
     }
 
-    func windowDidBecomeKey(_: NSNotification) {
+    func windowDidBecomeKey(_: Notification) {
         self.statusView.active = true
         NSMenu.setMenuBarVisible(!self.isFullScreen)
     }
 
-    func windowDidResignKey(_: NSNotification) {
+    func windowDidResignKey(_: Notification) {
         self.statusView.active = false
     }
 
-    func windowDidResize(_: NSNotification) {
+    func windowDidResize(_: Notification) {
         if self.alertView != nil {
             let frame = self.contentView!.frame
             self.alertView.setFrameOrigin(NSMakePoint(0, frame.height - 30))
         }
     }
 
-    override var canBecomeKeyWindow: Bool {
+    override var canBecomeKey: Bool {
         get {
             return true
         }

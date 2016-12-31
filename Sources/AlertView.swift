@@ -9,30 +9,30 @@ class AlertView: NSView {
         fatalError("Not implemented!")
     }
 
-    init(frame: NSRect, message: String, callback: ()->()) {
+    init(frame: NSRect, message: String, callback: @escaping ()->()) {
         self.message = message
         self.callback = callback
 
         super.init(frame: frame)
 
-        self.autoresizingMask = [.ViewWidthSizable]
+        self.autoresizingMask = [.viewWidthSizable]
     }
 
-    override func drawRect(dirtyRect: NSRect) {
+    override func draw(_ dirtyRect: NSRect) {
         let w = dirtyRect.width
         let h = dirtyRect.height
 
         NSGradient(colors: [
             NSColor(deviceRed: 254 / 0xff, green: 239 / 0xff, blue: 174 / 0xff, alpha: 1),
             NSColor(deviceRed: 250 / 0xff, green: 230 / 0xff, blue: 146 / 0xff, alpha: 1)
-        ])!.drawInRect(dirtyRect, angle: 90)
+        ])!.draw(in: dirtyRect, angle: 90)
 
-        self.message.drawInRect(
-            NSMakeRect(6, 2, w - 6, h - 8),
+        self.message.draw(
+            in: NSMakeRect(6, 2, w - 6, h - 8),
             withAttributes: nil
         )
 
-        NSColor.windowFrameColor().setFill()
+        NSColor.windowFrameColor.setFill()
         NSRectFill(NSMakeRect(0, 0, w, 1))
     }
 }

@@ -38,18 +38,18 @@ class Command: Comparable, CustomStringConvertible, Hashable {
     }
 
     var description: String {
-        return self.keys.map({"\(UnicodeScalar($0.key))"}).joinWithSeparator("")
+        return self.keys.map({"\(UnicodeScalar($0.key)!)"}).joined(separator: "")
     }
 
     var hashValue: Int {
-        return self.keys.map({"\($0.modifiers)\($0.key)"}).joinWithSeparator("").hashValue
+        return self.keys.map({"\($0.modifiers)\($0.key)"}).joined(separator: "").hashValue
     }
 }
 
 // TODO: Regex with ModifierKeys
 class Commander {
-    var commands: [Command: Void -> Void] = [:]
-    var regexCommands: [Regex: [String] -> Void] = [:]
+    var commands: [Command: (Void) -> Void] = [:]
+    var regexCommands: [Regex: ([String]) -> Void] = [:]
     var current: Command = Command()
 
     func addCommand(callable: Void -> Void, _ keys: Key...) {
@@ -87,7 +87,7 @@ class Commander {
             }
         }
         for (regex, callable) in self.regexCommands {
-            let (match, captures) = regex.match(String(self.current))
+            let (match, captures) = regex.match(String(describing: self.current))
             if match {
                 if captures != nil {
                     callable(captures!)
@@ -107,7 +107,7 @@ func <(lhs: Command, rhs: Command) -> Bool {
     if lhs.keys.count > rhs.keys.count {
         return false
     }
-    for (i, key) in lhs.keys.enumerate() {
+    for (i, key) in lhs.keys.enumerated() {
         if key != rhs.keys[i] {
             return false
         }

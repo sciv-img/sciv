@@ -1,20 +1,20 @@
 import AppKit
 import pcre
 
-class Regex: Hashable {
-    let regex: COpaquePointer
+class Regex: Hashable, Equatable {
+    let regex: OpaquePointer?
     let hash: Int // For Hashable
 
     init?(_ regex: String) {
         self.hash = regex.hashValue
 
-        let error = UnsafeMutablePointer<UnsafePointer<Int8>>.alloc(1)
-        let offset = UnsafeMutablePointer<Int32>.alloc(1)
+        let error = UnsafeMutablePointer<UnsafePointer<Int8>?>.allocate(capacity: 1)
+        let offset = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
         defer {
-            error.dealloc(1)
-            error.destroy()
-            offset.dealloc(1)
-            offset.destroy()
+            error.deallocate(capacity: 1)
+            error.deinitialize()
+            offset.deallocate(capacity: 1)
+            offset.deinitialize()
         }
         self.regex = pcre_compile(regex, 0, error, offset, nil)
         if self.regex == nil {
@@ -23,14 +23,14 @@ class Regex: Hashable {
     }
 
     deinit {
-        pcre_free?(UnsafeMutablePointer<Void>(self.regex))
+        pcre_free?(UnsafeMutableRawPointer(self.regex))
     }
 
-    func match(string: String) -> (Bool, [String]?) {
-        let ovector = UnsafeMutablePointer<Int32>.alloc(3 * 32)
+    func match(_ string: String) -> (Bool, [String]?) {
+        let ovector = UnsafeMutablePointer<Int32>.allocate(capacity: 3 * 32)
         defer {
-            ovector.dealloc(3 * 32)
-            ovector.destroy()
+            ovector.deallocate(capacity: 3 * 32)
+            ovector.deinitialize()
         }
         let matches = pcre_exec(
             self.regex, nil, string, Int32(string.characters.count),
@@ -44,26 +44,16 @@ class Regex: Hashable {
         }
         // TODO: Make this more generic?
         let si = string.startIndex
-        let start = si.advancedBy(Int(ovector[2]))
-        let end = si.advancedBy(Int(ovector[3]))
+        let start = string.index(si, offsetBy: Int(ovector[2]))
+        let end = string.index(si, offsetBy: Int(ovector[3]))
         return (true, [string[start..<end]])
     }
 
     var hashValue: Int {
         return self.hash
     }
-}
 
-extension NSDate: Comparable {}
-
-public func <(lhs: NSDate, rhs: NSDate) -> Bool {
-    return lhs.compare(rhs) == .OrderedAscending
-}
-
-func ==(lhs: NSDate, rhs: NSDate) -> Bool {
-    return lhs === rhs || lhs.compare(rhs) == .OrderedSame
-}
-
-func ==(lhs: Regex, rhs: Regex) -> Bool {
-    return lhs.hash == rhs.hash
+    static func ==(lhs: Regex, rhs: Regex) -> Bool {
+        return lhs.hash == rhs.hash
+    }
 }
