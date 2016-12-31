@@ -33,7 +33,7 @@ class Command: Comparable, CustomStringConvertible, Hashable {
         self.init(keys)
     }
 
-    func addKey(key: Key) {
+    func addKey(_ key: Key) {
         self.keys.append(key)
     }
 
@@ -64,7 +64,7 @@ class Commander {
         // TODO: Return error to user
     }
 
-    func addKey(key: Key) {
+    func addKey(_ key: Key) {
         self.current.addKey(key)
     }
 

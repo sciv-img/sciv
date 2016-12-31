@@ -60,7 +60,7 @@ class Imager: NSWindow, NSWindowDelegate {
         self.commander.addCommand(self.alertHide, Key("a"), Key("h"))
     }
 
-    func alertShow(msg: String) {
+    func alertShow(_ msg: String) {
         if self.alertView != nil {
             self.alertHide()
         }
