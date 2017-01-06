@@ -11,7 +11,7 @@ enum OrderType {
 }
 
 extension Array {
-    mutating func shuffleInPlace() {
+    mutating func shuffle() {
         for i in stride(from: self.count - 1, through: 1, by: -1) {
             let j = Int(arc4random_uniform(UInt32(i)))
             swap(&self[i], &self[j])
@@ -59,7 +59,7 @@ class Files {
             case .MtimeDesc:
                 self.files.sort(by: {$0.mtime > $1.mtime})
             case .Random:
-                self.files.shuffleInPlace()
+                self.files.shuffle()
             default:
                 return
             }
