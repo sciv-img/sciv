@@ -1,5 +1,93 @@
 import AppKit
-import pcre
+import PathKit
+import Cpcre
+
+struct FSEventFlag: OptionSet {
+    let rawValue: FSEventStreamEventFlags
+
+    public static let None = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagNone))
+    public static let MustScanSubDirs = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagMustScanSubDirs))
+    public static let UserDropped = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagUserDropped))
+    public static let KernelDropped = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagKernelDropped))
+    public static let EventIdsWrapped = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagEventIdsWrapped))
+    public static let HistoryDone = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagHistoryDone))
+    public static let RootChanged = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagRootChanged))
+    public static let Mount = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagMount))
+    public static let Unmount = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagUnmount))
+    public static let ItemChangeOwner = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagItemChangeOwner))
+    public static let ItemCreated = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagItemCreated))
+    public static let ItemFinderInfoMod = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagItemFinderInfoMod))
+    public static let ItemInodeMetaMod = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagItemInodeMetaMod))
+    public static let ItemIsDir = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagItemIsDir))
+    public static let ItemIsFile = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagItemIsFile))
+    public static let ItemIsHardlink = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagItemIsHardlink))
+    public static let ItemIsLastHardlink = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagItemIsLastHardlink))
+    public static let ItemIsSymlink = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagItemIsSymlink))
+    public static let ItemModified = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagItemModified))
+    public static let ItemRemoved = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagItemRemoved))
+    public static let ItemRenamed = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagItemRenamed))
+    public static let ItemXattrMod = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagItemXattrMod))
+    public static let OwnEvent = FSEventFlag(rawValue: FSEventStreamEventFlags(kFSEventStreamEventFlagOwnEvent))
+}
+
+struct FSEvent {
+    public let path: Path
+    public let flag: FSEventFlag
+}
+
+class FSEventsMonitor {
+    private var stream: FSEventStreamRef?
+    private let callback: (FSEvent) -> Void
+
+    init?(_ path: Path, callback: @escaping (FSEvent) -> Void) {
+        self.callback = callback
+
+        var context = FSEventStreamContext(
+            version: 0,
+            info: UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque()),
+            retain: nil,
+            release: nil,
+            copyDescription: nil
+        )
+        self.stream = FSEventStreamCreate(
+            nil, self.streamCallback, &context,
+            [String(describing: path)] as CFArray,
+            FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
+            0, FSEventStreamCreateFlags(
+                kFSEventStreamCreateFlagUseCFTypes |
+                kFSEventStreamCreateFlagFileEvents
+            )
+        )
+        guard let stream = self.stream else {
+            return nil
+        }
+
+        FSEventStreamScheduleWithRunLoop(stream, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
+        FSEventStreamStart(stream)
+    }
+
+    deinit {
+        if let stream = self.stream {
+            FSEventStreamStop(stream)
+            FSEventStreamUnscheduleFromRunLoop(stream, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
+            FSEventStreamInvalidate(stream)
+            FSEventStreamRelease(stream)
+        }
+    }
+
+    private let streamCallback: FSEventStreamCallback = {(stream, contextInfo, numEvents, eventPaths, eventFlags, eventIds) in
+        guard let paths = unsafeBitCast(eventPaths, to: NSArray.self) as? [String] else {
+            return
+        }
+
+        let this = unsafeBitCast(contextInfo, to: FSEventsMonitor.self)
+        let flags = Array(UnsafeBufferPointer(start: eventFlags, count: numEvents))
+
+        for i in 0 ..< numEvents {
+            this.callback(FSEvent(path: Path(paths[i]), flag: FSEventFlag(rawValue: flags[i])))
+        }
+    }
+}
 
 class Regex: Hashable, Equatable {
     let regex: OpaquePointer?
@@ -34,9 +122,9 @@ class Regex: Hashable, Equatable {
         }
         let matches = pcre_exec(
             self.regex, nil, string, Int32(string.characters.count),
-            0, pcre.PCRE_PARTIAL, ovector, 3 * 32
+            0, Cpcre.PCRE_PARTIAL, ovector, 3 * 32
         )
-        if matches == pcre.PCRE_ERROR_PARTIAL {
+        if matches == Cpcre.PCRE_ERROR_PARTIAL {
             return (true, nil)
         }
         if matches < 0 {

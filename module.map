@@ -1,5 +1,0 @@
-module pcre {
-    header "/usr/local/include/pcre.h"
-    link "pcre"
-    export *
-}

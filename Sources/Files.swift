@@ -1,4 +1,4 @@
-import EonilFileSystemEvents
+import AppKit
 import PathKit
 
 enum OrderType {
@@ -68,9 +68,9 @@ class Files {
     }
 
     var dir: Path
-    var monitor: FileSystemEventMonitor?
+    var monitor: FSEventsMonitor?
 
-    init(_ dirOrFile: String, _ callback: @escaping ()->()) {
+    init(_ dirOrFile: String, _ callback: @escaping () -> ()) {
         self.files = []
         self.o = .None
         let dirOrFilePath = Path(dirOrFile)
@@ -97,9 +97,7 @@ class Files {
 
         self.i = self.files.index(where: {$0.path == dirOrFilePath}) ?? 0
 
-        self.monitor = FileSystemEventMonitor(
-            pathsToWatch: ["/"], callback: self.eventHandler
-        )
+        self.monitor = FSEventsMonitor(self.dir, callback: self.eventHandler)
     }
 
     private class func getDirPath(path: Path) -> Path {
@@ -111,31 +109,22 @@ class Files {
         return Path(components[0..<components.count - 1].joined(separator: Path.separator))
     }
 
-    private func eventHandler(events: [FileSystemEvent]) {
-        Swift.print(events)
-        if events.count > 2 {
-            return
-        }
-
-        let event1Path = Path(events[0].path)
-        if Files.getDirPath(path: event1Path) != self.dir {
-            return
-        }
-
-        switch String(describing: events[0].flag) {
-        case "ItemRenamed":
-            let event2Path = Path(events[1].path)
-            if Files.getDirPath(path: event2Path) != self.dir {
-                let idx = self.files.index(where: {$0.path == event1Path})
-                if idx == nil {
-                    break
+    private func eventHandler(event: FSEvent) {
+        if event.flag.contains(.ItemRenamed) {
+            if !event.path.exists {
+                if let idx = self.files.index(where: {$0.path == event.path}) {
+                    let i = self.i
+                    self.files.remove(at: idx)
+                    self.i = i
                 }
+            } else {
+                // TODO: Where to put i when "real" rename within dir?
                 let i = self.i
-                self.files.remove(at: idx!)
+                let o = self.o
+                self.files.append(File(event.path))
+                self.o = o
                 self.i = i
             }
-        default:
-            break
         }
     }
 
