@@ -1,7 +1,7 @@
 import AppKit
 
 class AlertView: NSView {
-    private var callback: ()->()
+    private var callback: () -> ()
 
     private var message: String
 
@@ -9,7 +9,7 @@ class AlertView: NSView {
         fatalError("Not implemented!")
     }
 
-    init(frame: NSRect, message: String, callback: @escaping ()->()) {
+    init(frame: NSRect, message: String, callback: @escaping () -> ()) {
         self.message = message
         self.callback = callback
 

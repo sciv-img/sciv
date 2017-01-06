@@ -33,7 +33,7 @@ class File {
 }
 
 class Files {
-    var callback: ()->()
+    var callback: () -> ()
 
     var files: [File]
     var i: Int {
