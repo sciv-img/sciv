@@ -110,20 +110,42 @@ class Files {
     }
 
     private func eventHandler(event: FSEvent) {
-        if event.flag.contains(.ItemRenamed) {
-            if !event.path.exists {
-                if let idx = self.files.index(where: {$0.path == event.path}) {
-                    let i = self.i
-                    self.files.remove(at: idx)
-                    self.i = i
+        // TODO: Handle rename within self.dir
+        func create() {
+            let c = self.current
+            let o = self.o
+            // TODO: Check that file is actually image :-)
+            self.files.append(File(event.path))
+            self.o = o
+            self.i = self.files.index(where: {$0.path == c})!
+        }
+        func remove() {
+            if let idx = self.files.index(where: {$0.path == event.path}) {
+                self.files.remove(at: idx)
+
+                if idx < self.i {
+                    self.i -= 1
+                } else {
+                    self.i += 0
                 }
+            }
+        }
+
+        if event.flag.contains(.ItemCreated) {
+            create()
+        } else if event.flag.contains(.ItemRemoved) {
+            remove()
+        } else if event.flag.contains(.ItemModified) {
+            if let idx = self.files.index(where: {$0.path == event.path}) {
+                if idx == self.i {
+                    self.callback()
+                }
+            }
+        } else if event.flag.contains(.ItemRenamed) {
+            if !event.path.exists {
+                remove()
             } else {
-                // TODO: Where to put i when "real" rename within dir?
-                let i = self.i
-                let o = self.o
-                self.files.append(File(event.path))
-                self.o = o
-                self.i = i
+                create()
             }
         }
     }
