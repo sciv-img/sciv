@@ -32,10 +32,26 @@ class File {
     }
 }
 
+// TODO: Replace with Array extension in Swift 3.1
+extension _ArrayProtocol where Iterator.Element == File {
+    mutating func appendIfImage(_ path: Path) {
+        guard let ext = path.extension else {
+            return
+        }
+        let kUTTCFE = kUTTagClassFilenameExtension
+        if let uti = UTTypeCreatePreferredIdentifierForTag(kUTTCFE, ext as CFString, nil) {
+            if !UTTypeConformsTo(uti.takeRetainedValue(), kUTTypeImage) {
+                return
+            }
+            self.append(File(path))
+        }
+    }
+}
+
 class Files {
     var callback: () -> ()
 
-    var files: [File]
+    private var files: [File]
     var i: Int {
         didSet {
             if self.i < 0 {
@@ -82,17 +98,7 @@ class Files {
         self.callback = callback
 
         for path in (try? dir.children()) ?? [] {
-            let ext = path.`extension`
-            if ext == nil {
-                continue
-            }
-            let kUTTCFE = kUTTagClassFilenameExtension
-            if let uti = UTTypeCreatePreferredIdentifierForTag(kUTTCFE, ext! as CFString, nil) {
-                if !UTTypeConformsTo(uti.takeRetainedValue(), kUTTypeImage) {
-                    continue
-                }
-                self.files.append(File(path))
-            }
+            self.files.appendIfImage(path)
         }
 
         self.i = self.files.index(where: {$0.path == dirOrFilePath}) ?? 0
@@ -114,8 +120,7 @@ class Files {
         func create() {
             let c = self.current
             let o = self.o
-            // TODO: Check that file is actually image :-)
-            self.files.append(File(event.path))
+            self.files.appendIfImage(event.path)
             self.o = o
             self.i = self.files.index(where: {$0.path == c})!
         }
