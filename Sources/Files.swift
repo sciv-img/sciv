@@ -19,6 +19,31 @@ extension Array {
     }
 }
 
+extension Path {
+    // TODO: Move this (done nicely) into PathKit
+    func getDirPath() -> Path {
+        var components = self.components
+        if components[0] == "/" {
+            components[0] = ""
+        }
+        return Path(components[0..<components.count-1].joined(separator: Path.separator))
+    }
+
+    var isImage: Bool {
+        guard let ext = self.extension else {
+            return false
+        }
+        let kUTTCFE = kUTTagClassFilenameExtension
+        if let uti = UTTypeCreatePreferredIdentifierForTag(kUTTCFE, ext as CFString, nil) {
+            if !UTTypeConformsTo(uti.takeRetainedValue(), kUTTypeImage) {
+                return false
+            }
+            return true
+        }
+        return false
+    }
+}
+
 class File {
     let path: Path
     let mtime: Date
@@ -35,14 +60,7 @@ class File {
 // TODO: Replace with Array extension in Swift 3.1
 extension _ArrayProtocol where Iterator.Element == File {
     mutating func appendIfImage(_ path: Path) {
-        guard let ext = path.extension else {
-            return
-        }
-        let kUTTCFE = kUTTagClassFilenameExtension
-        if let uti = UTTypeCreatePreferredIdentifierForTag(kUTTCFE, ext as CFString, nil) {
-            if !UTTypeConformsTo(uti.takeRetainedValue(), kUTTypeImage) {
-                return
-            }
+        if path.isImage {
             self.append(File(path))
         }
     }
@@ -91,7 +109,7 @@ class Files {
         self.o = .None
         let dirOrFilePath = Path(dirOrFile)
         if dirOrFilePath.isFile {
-            self.dir = Files.getDirPath(path: dirOrFilePath)
+            self.dir = dirOrFilePath.getDirPath()
         } else {
             self.dir = dirOrFilePath
         }
@@ -106,26 +124,18 @@ class Files {
         self.monitor = FSEventsMonitor(self.dir, callback: self.eventHandler)
     }
 
-    private class func getDirPath(path: Path) -> Path {
-        // TODO: Move this (done nicely) into PathKit
-        var components = path.components
-        if components[0] == "/" {
-            components[0] = ""
-        }
-        return Path(components[0..<components.count - 1].joined(separator: Path.separator))
-    }
-
     private func eventHandler(event: FSEvent) {
-        // TODO: Handle rename within self.dir
+        var path = event.path
+
         func create() {
             let c = self.current
             let o = self.o
-            self.files.appendIfImage(event.path)
+            self.files.appendIfImage(path)
             self.o = o
             self.i = self.files.index(where: {$0.path == c})!
         }
         func remove() {
-            if let idx = self.files.index(where: {$0.path == event.path}) {
+            if let idx = self.files.index(where: {$0.path == path}) {
                 self.files.remove(at: idx)
 
                 if idx < self.i {
@@ -141,13 +151,32 @@ class Files {
         } else if event.flag.contains(.ItemRemoved) {
             remove()
         } else if event.flag.contains(.ItemModified) {
-            if let idx = self.files.index(where: {$0.path == event.path}) {
+            if let idx = self.files.index(where: {$0.path == path}) {
                 if idx == self.i {
                     self.callback()
                 }
             }
         } else if event.flag.contains(.ItemRenamed) {
-            if !event.path.exists {
+            if let oldPath = event.oldPath {
+                if path.isImage {
+                    if let i = self.files.index(where: {$0.path == oldPath}) {
+                        var c = self.current
+                        let o = self.o
+                        self.files[i] = File(path)
+                        self.o = o
+
+                        if path == self.current {
+                            c = path
+                        }
+                        self.i = self.files.index(where: {$0.path == c})!
+                    } else {
+                        create()
+                    }
+                } else {
+                    path = oldPath
+                    remove()
+                }
+            } else if !path.exists {
                 remove()
             } else {
                 create()

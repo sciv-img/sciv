@@ -33,6 +33,8 @@ struct FSEventFlag: OptionSet {
 struct FSEvent {
     public let path: Path
     public let flag: FSEventFlag
+
+    public let oldPath: Path?
 }
 
 class FSEventsMonitor {
@@ -82,9 +84,28 @@ class FSEventsMonitor {
 
         let this = unsafeBitCast(contextInfo, to: FSEventsMonitor.self)
         let flags = Array(UnsafeBufferPointer(start: eventFlags, count: numEvents))
+        let ids = Array(UnsafeBufferPointer(start: eventIds, count: numEvents))
 
-        for i in 0 ..< numEvents {
-            this.callback(FSEvent(path: Path(paths[i]), flag: FSEventFlag(rawValue: flags[i])))
+        for i in stride(from: 0, to: numEvents, by: 2) {
+            let p1 = Path(paths[i])
+            let f1 = FSEventFlag(rawValue: flags[i])
+            let i1 = ids[i]
+
+            if i+1 < numEvents {
+                let p2 = Path(paths[i+1])
+                let f2 = FSEventFlag(rawValue: flags[i+1])
+                let i2 = ids[i+1]
+
+                if f2.contains(.ItemRenamed) && i2 == i1+1 && p1.getDirPath() == p2.getDirPath() {
+                    this.callback(FSEvent(path: p2, flag: f2, oldPath: p1))
+                    continue
+                }
+                this.callback(FSEvent(path: p1, flag: f1, oldPath: nil))
+                this.callback(FSEvent(path: p2, flag: f2, oldPath: nil))
+                continue
+            }
+
+            this.callback(FSEvent(path: p1, flag: f1, oldPath: nil))
         }
     }
 }
