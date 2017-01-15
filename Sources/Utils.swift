@@ -162,7 +162,7 @@ class Regex: Hashable, Equatable {
         return self.hash
     }
 
-    static func ==(lhs: Regex, rhs: Regex) -> Bool {
+    static func == (lhs: Regex, rhs: Regex) -> Bool {
         return lhs.hash == rhs.hash
     }
 }

@@ -11,7 +11,7 @@ class Imager: NSWindow, NSWindowDelegate {
         .closable,
         .miniaturizable,
         .resizable,
-        .titled,
+        .titled
     ]
 
     var isFullScreen: Bool
@@ -23,15 +23,15 @@ class Imager: NSWindow, NSWindowDelegate {
     let commander: Commander
 
     init() {
-        self.imageView = NSImageView(frame: NSMakeRect(0, 22, 640, 458))
+        self.imageView = NSImageView(frame: NSRect(x: 0, y: 22, width: 640, height: 458))
         self.imageView.autoresizingMask = [.viewWidthSizable, .viewHeightSizable]
-        self.statusView = StatusView(frame: NSMakeRect(0, 0, 640, 22))
+        self.statusView = StatusView(frame: NSRect(x: 0, y: 0, width: 640, height: 22))
         self.statusView.autoresizingMask = [.viewWidthSizable]
         self.isFullScreen = false
 
         self.commander = Commander()
 
-        let rect = NSMakeRect(200, 200, 640, 480)
+        let rect = NSRect(x: 200, y: 200, width: 640, height: 480)
         super.init(
             contentRect: rect,
             styleMask: self.defaultMask,
@@ -68,14 +68,14 @@ class Imager: NSWindow, NSWindowDelegate {
         let view = self.contentView!
 
         self.alertView = AlertView(
-            frame: NSMakeRect(0, view.frame.height - 30, view.frame.width, 30),
+            frame: NSRect(x: 0, y: view.frame.height - 30, width: view.frame.width, height: 30),
             message: msg,
             callback: self.alertHide
         )
         view.addSubview(self.alertView)
 
         let iframe = self.imageView.frame
-        self.imageView.setFrameSize(NSMakeSize(iframe.width, iframe.height - 30))
+        self.imageView.setFrameSize(NSSize(width: iframe.width, height: iframe.height - 30))
     }
 
     func alertHide() {
@@ -86,7 +86,7 @@ class Imager: NSWindow, NSWindowDelegate {
         self.alertView.removeFromSuperview()
         self.alertView = nil
         let iframe = self.imageView.frame
-        self.imageView.setFrameSize(NSMakeSize(iframe.width, iframe.height + 30))
+        self.imageView.setFrameSize(NSSize(width: iframe.width, height: iframe.height + 30))
     }
 
     func setup(_ dirOrFile: String) {
@@ -167,7 +167,7 @@ class Imager: NSWindow, NSWindowDelegate {
         }
         self.timer = Timer.scheduledTimer(
             timeInterval: time ?? 2,
-            target: self, selector: #selector(Imager.next as (Imager) -> () -> ()),
+            target: self, selector: #selector(Imager.next as (Imager) -> () -> Void),
             userInfo: nil, repeats: true
         )
     }
@@ -266,13 +266,11 @@ class Imager: NSWindow, NSWindowDelegate {
     func windowDidResize(_: Notification) {
         if self.alertView != nil {
             let frame = self.contentView!.frame
-            self.alertView.setFrameOrigin(NSMakePoint(0, frame.height - 30))
+            self.alertView.setFrameOrigin(NSPoint(x: 0, y: frame.height - 30))
         }
     }
 
     override var canBecomeKey: Bool {
-        get {
-            return true
-        }
+        return true
     }
 }

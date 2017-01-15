@@ -103,7 +103,7 @@ class Commander {
 
 // MARK: Comparable
 
-func <(lhs: Command, rhs: Command) -> Bool {
+func < (lhs: Command, rhs: Command) -> Bool {
     if lhs.keys.count > rhs.keys.count {
         return false
     }
@@ -117,10 +117,10 @@ func <(lhs: Command, rhs: Command) -> Bool {
 
 // MARK: Equatable
 
-func ==(lhs: Key, rhs: Key) -> Bool {
+func == (lhs: Key, rhs: Key) -> Bool {
     return lhs.key == rhs.key && lhs.modifiers == rhs.modifiers
 }
 
-func ==(lhs: Command, rhs: Command) -> Bool {
+func == (lhs: Command, rhs: Command) -> Bool {
     return lhs.keys == rhs.keys
 }

@@ -67,7 +67,7 @@ extension _ArrayProtocol where Iterator.Element == File {
 }
 
 class Files {
-    var callback: () -> ()
+    var callback: () -> Void
 
     private var files: [File]
     var i: Int {
@@ -104,7 +104,7 @@ class Files {
     var dir: Path
     var monitor: FSEventsMonitor?
 
-    init(_ dirOrFile: String, _ callback: @escaping () -> ()) {
+    init(_ dirOrFile: String, _ callback: @escaping () -> Void) {
         self.files = []
         self.o = .None
         let dirOrFilePath = Path(dirOrFile)

@@ -1,7 +1,7 @@
 import AppKit
 
 class AlertView: NSView {
-    private var callback: () -> ()
+    private var callback: () -> Void
 
     private var message: String
 
@@ -9,7 +9,7 @@ class AlertView: NSView {
         fatalError("Not implemented!")
     }
 
-    init(frame: NSRect, message: String, callback: @escaping () -> ()) {
+    init(frame: NSRect, message: String, callback: @escaping () -> Void) {
         self.message = message
         self.callback = callback
 
@@ -28,11 +28,11 @@ class AlertView: NSView {
         ])!.draw(in: dirtyRect, angle: 90)
 
         self.message.draw(
-            in: NSMakeRect(6, 2, w - 6, h - 8),
+            in: NSRect(x: 6, y: 2, width: w - 6, height: h - 8),
             withAttributes: nil
         )
 
         NSColor.windowFrameColor.setFill()
-        NSRectFill(NSMakeRect(0, 0, w, 1))
+        NSRectFill(NSRect(x: 0, y: 0, width: w, height: 1))
     }
 }

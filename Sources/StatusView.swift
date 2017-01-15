@@ -13,19 +13,19 @@ class StatusView: NSView {
             self.needsDisplay = true
         }
     }
-    internal var _command = ""
+    internal var commandI = ""
     var command: String {
         set {
             if newValue.characters.count > 3 {
                 let end = newValue.endIndex
-                self._command = newValue[newValue.index(end, offsetBy: -3)..<end]
+                self.commandI = newValue[newValue.index(end, offsetBy: -3)..<end]
             } else {
-                self._command = newValue
+                self.commandI = newValue
             }
             self.needsDisplay = true
         }
         get {
-            return self._command
+            return self.commandI
         }
     }
 
@@ -39,7 +39,7 @@ class StatusView: NSView {
         let w = dirtyRect.width
         let h = dirtyRect.height
 
-        let frame = NSMakeRect(0, 21, w, 1)
+        let frame = NSRect(x: 0, y: 21, width: w, height: 1)
         NSColor.windowFrameColor.setFill()
         NSRectFill(frame)
 
@@ -50,19 +50,19 @@ class StatusView: NSView {
             NSColor(deviceWhite: 225 / 0xff, alpha: 1),
             NSColor(deviceWhite: 235 / 0xff, alpha: 1)
         ]
-        let bg = NSMakeRect(0, 0, w, h - 1)
+        let bg = NSRect(x: 0, y: 0, width: w, height: h - 1)
         NSGradient(colors: colors)!.draw(in: bg, angle: 90)
 
         let status = "\(self.currentFile.number)/\(self.numberOfFiles) | \(Int(self.currentFile.size.width))x\(Int(self.currentFile.size.height)) | \(self.currentFile.name)"
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineBreakMode = .byTruncatingTail
         status.draw(
-            in: NSMakeRect(6, 3, w - 41, h - 7),
+            in: NSRect(x: 6, y: 3, width: w - 41, height: h - 7),
             withAttributes: [NSParagraphStyleAttributeName: paragraph]
         )
 
         " | \(self.command)".draw(
-            in: NSMakeRect(w - 36, 3, 36, h - 7), withAttributes: nil
+            in: NSRect(x: w - 36, y: 3, width: 36, height: h - 7), withAttributes: nil
         )
     }
 }
