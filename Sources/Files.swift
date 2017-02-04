@@ -131,18 +131,16 @@ class Files {
             let c = self.current
             let o = self.o
             self.files.appendIfImage(path)
-            self.o = o
+            if o != .Random {
+                self.o = o
+            }
             self.i = self.files.index(where: {$0.path == c})!
         }
         func remove() {
             if let idx = self.files.index(where: {$0.path == path}) {
                 self.files.remove(at: idx)
 
-                if idx < self.i {
-                    self.i -= 1
-                } else {
-                    self.i += 0
-                }
+                self.i -= idx < self.i ? 1 : 0
             }
         }
 
@@ -163,7 +161,9 @@ class Files {
                         var c = self.current
                         let o = self.o
                         self.files[i] = File(path)
-                        self.o = o
+                        if o != .Random {
+                            self.o = o
+                        }
 
                         if path == self.current {
                             c = path
