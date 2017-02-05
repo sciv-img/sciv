@@ -1,5 +1,65 @@
 import AppKit
 import PathKit
+import Cwebp
+
+extension NSImage {
+    convenience init?(_ filepath: Path) {
+        let filepathStr = String(describing: filepath)
+
+        if filepath.extension == "webp" {
+            guard let data = NSData(contentsOfFile: filepathStr) else {
+                return nil
+            }
+
+            var w32: Int32 = 0
+            var h32: Int32 = 0
+
+            if WebPGetInfo(data.bytes.assumingMemoryBound(to: UInt8.self), data.length, &w32, &h32) == 0 {
+                return nil
+            }
+
+            guard let bytes = WebPDecodeRGBA(data.bytes.assumingMemoryBound(to: UInt8.self), data.length, &w32, &h32) else {
+                return nil
+            }
+
+            let width = Int(w32)
+            let height = Int(h32)
+
+            let maybeProvider = CGDataProvider(
+                dataInfo: nil,
+                data: UnsafeRawPointer(bytes),
+                size: width * height * 4,
+                releaseData: { (_: UnsafeMutableRawPointer?, data: UnsafeRawPointer, size: Int) -> Void in
+                    free(UnsafeMutableRawPointer(mutating: data))
+                }
+            )
+            guard let provider = maybeProvider else {
+                return nil
+            }
+
+            let maybeImage = CGImage(
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bitsPerPixel: 32,
+                bytesPerRow: width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
+                provider: provider,
+                decode: nil,
+                shouldInterpolate: false,
+                intent: CGColorRenderingIntent.defaultIntent
+            )
+            guard let image = maybeImage else {
+                return nil
+            }
+
+            self.init(cgImage: image, size: NSSize(width: width, height: height))
+        } else {
+            self.init(byReferencingFile: filepathStr)
+        }
+    }
+}
 
 class Imager: NSWindow, NSWindowDelegate {
     var files: Files!
@@ -98,10 +158,9 @@ class Imager: NSWindow, NSWindowDelegate {
         self.alertHide()
 
         let filepath = self.files.current
-        let filepathStr = String(describing: filepath)
         var size = NSSize()
 
-        self.title = filepathStr
+        self.title = String(describing: filepath)
         self.statusView.currentFile = FileInfo(
             number: self.files.i + 1,
             name: filepath.lastComponent,
@@ -109,12 +168,10 @@ class Imager: NSWindow, NSWindowDelegate {
         )
         self.statusView.numberOfFiles = self.files.count
 
-        let maybeImage = NSImage(byReferencingFile: filepathStr)
-        if maybeImage == nil {
+        guard let image = NSImage(filepath) else {
             self.alertShow("Cannot open image file: NSImage returned nil")
             return
         }
-        let image = maybeImage!
         var square = 0
         for rep in image.representations {
             let maybeSquare = rep.pixelsWide * rep.pixelsHigh

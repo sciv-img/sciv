@@ -1,6 +1,6 @@
 #!/bin/sh
 
-swift build -c release
+swift build -c release -Xlinker -L/usr/local/lib
 
 APP=".build/sciv.app"
 
