@@ -311,6 +311,10 @@ class Imager: NSWindow, NSWindowDelegate {
         }
     }
 
+    override var canBecomeKey: Bool {
+        return true
+    }
+
     func windowDidBecomeKey(_: Notification) {
         self.statusView.active = true
         NSMenu.setMenuBarVisible(!self.isFullScreen)
@@ -327,7 +331,7 @@ class Imager: NSWindow, NSWindowDelegate {
         }
     }
 
-    override var canBecomeKey: Bool {
-        return true
+    func windowWillClose(_: Notification) {
+        NSMenu.setMenuBarVisible(true)
     }
 }
