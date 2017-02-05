@@ -1,5 +1,6 @@
 disabled_rules:
   - line_length
+  - large_tuple
 
 variable_name:
   min_length: 1
