@@ -57,8 +57,7 @@ class File {
     }
 }
 
-// TODO: Replace with Array extension in Swift 3.1
-extension _ArrayProtocol where Iterator.Element == File {
+extension Array where Iterator.Element == File {
     mutating func appendIfImage(_ path: Path) {
         if path.isImage {
             self.append(File(path))
