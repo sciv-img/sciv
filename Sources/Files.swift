@@ -71,10 +71,12 @@ class Files {
     private var files: [File]
     var i: Int {
         didSet {
-            if self.i < 0 {
-                self.i = 0
-            } else if self.i >= self.files.count {
-                self.i = self.files.count - 1
+            if self.count > 0 {
+                if self.i < 0 {
+                    self.i = 0
+                } else if self.i >= self.count {
+                    self.i = self.count - 1
+                }
             }
             self.callback()
         }
@@ -133,7 +135,9 @@ class Files {
             if o != .Random {
                 self.o = o
             }
-            self.i = self.files.index(where: {$0.path == c})!
+            if c != nil {
+                self.i = self.files.index(where: {$0.path == c!})!
+            }
         }
         func remove() {
             if let idx = self.files.index(where: {$0.path == path}) {
@@ -157,14 +161,14 @@ class Files {
             if let oldPath = event.oldPath {
                 if path.isImage {
                     if let i = self.files.index(where: {$0.path == oldPath}) {
-                        var c = self.current
+                        var c = self.current!
                         let o = self.o
                         self.files[i] = File(path)
                         if o != .Random {
                             self.o = o
                         }
 
-                        if path == self.current {
+                        if path == self.current! {
                             c = path
                         }
                         self.i = self.files.index(where: {$0.path == c})!
@@ -183,7 +187,10 @@ class Files {
         }
     }
 
-    var current: Path {
+    var current: Path? {
+        if self.i >= self.count {
+            return nil
+        }
         return self.files[self.i].path
     }
 

@@ -157,7 +157,11 @@ class Imager: NSWindow, NSWindowDelegate {
     func show() {
         self.alertHide()
 
-        let filepath = self.files.current
+        guard let filepath = self.files.current else {
+            self.close()
+            return
+        }
+
         var size = NSSize()
 
         self.title = String(describing: filepath)
@@ -249,7 +253,7 @@ class Imager: NSWindow, NSWindowDelegate {
         }
         NSMenu.setMenuBarVisible(true)
         self.styleMask = self.defaultMask
-        self.title = String(describing: self.files.current)
+        self.title = String(describing: self.files.current ?? "")
         self.setFrame(self.previousFrame!, display: true, animate: false)
         self.backgroundColor = self.previousBackgroundColor!
     }
@@ -272,6 +276,10 @@ class Imager: NSWindow, NSWindowDelegate {
             self.alertShow("Could not find the run.sh file in any known location")
             return
         }
+        guard let file = self.files.current else {
+            self.alertShow("There is no current file")
+            return
+        }
 
         let pipe = Pipe()
         let task = Process()
@@ -280,7 +288,7 @@ class Imager: NSWindow, NSWindowDelegate {
         task.standardInput = pipe
         task.launch()
         let handle = pipe.fileHandleForWriting
-        let path = String(describing: self.files.current)
+        let path = String(describing: file)
         handle.write(path.data(using: String.Encoding.utf8)!) // FIXME: Check error
         handle.closeFile()
         task.waitUntilExit()
