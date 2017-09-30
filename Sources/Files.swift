@@ -52,7 +52,7 @@ class File {
         self.path = path
 
         var st = stat()
-        stat(String(describing: path), &st)
+        stat(path.string, &st)
         self.mtime = Date(timeIntervalSince1970: Double(st.st_mtimespec.tv_sec))
     }
 }

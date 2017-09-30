@@ -53,7 +53,7 @@ class FSEventsMonitor {
         )
         self.stream = FSEventStreamCreate(
             nil, self.streamCallback, &context,
-            [String(describing: path)] as CFArray,
+            [path.string] as CFArray,
             FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
             0, FSEventStreamCreateFlags(
                 kFSEventStreamCreateFlagUseCFTypes |

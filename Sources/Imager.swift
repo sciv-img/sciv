@@ -4,7 +4,7 @@ import Cwebp
 
 extension NSImage {
     convenience init?(_ filepath: Path) {
-        let filepathStr = String(describing: filepath)
+        let filepathStr = filepath.string
 
         if filepath.extension == "webp" {
             guard let data = NSData(contentsOfFile: filepathStr) else {
@@ -164,7 +164,7 @@ class Imager: NSWindow, NSWindowDelegate {
 
         var size = NSSize()
 
-        self.title = String(describing: filepath)
+        self.title = filepath.string
         self.statusView.currentFile = FileInfo(
             number: self.files.i + 1,
             name: filepath.lastComponent,
@@ -253,7 +253,7 @@ class Imager: NSWindow, NSWindowDelegate {
         }
         NSMenu.setMenuBarVisible(true)
         self.styleMask = self.defaultMask
-        self.title = String(describing: self.files.current ?? "")
+        self.title = self.files.current?.string ?? ""
         self.setFrame(self.previousFrame!, display: true, animate: false)
         self.backgroundColor = self.previousBackgroundColor!
     }
@@ -269,7 +269,7 @@ class Imager: NSWindow, NSWindowDelegate {
             }
             let maybeRunFile = Path(dir.path) + "sciv" + "run.sh"
             if maybeRunFile.exists {
-                runFile = String(describing: maybeRunFile)
+                runFile = maybeRunFile.string
             }
         }
         if runFile == nil {
@@ -288,8 +288,7 @@ class Imager: NSWindow, NSWindowDelegate {
         task.standardInput = pipe
         task.launch()
         let handle = pipe.fileHandleForWriting
-        let path = String(describing: file)
-        handle.write(path.data(using: String.Encoding.utf8)!) // FIXME: Check error
+        handle.write(file.string.data(using: String.Encoding.utf8)!) // FIXME: Check error
         handle.closeFile()
         task.waitUntilExit()
         if task.terminationStatus != 0 {
