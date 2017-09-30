@@ -288,7 +288,11 @@ class Imager: NSWindow, NSWindowDelegate {
         task.standardInput = pipe
         task.launch()
         let handle = pipe.fileHandleForWriting
-        handle.write(file.string.data(using: String.Encoding.utf8)!) // FIXME: Check error
+        if let cstr = file.string.data(using: String.Encoding.utf8) {
+            handle.write(cstr)
+        } else {
+            self.alertShow("Failed filename encoding")
+        }
         handle.closeFile()
         task.waitUntilExit()
         if task.terminationStatus != 0 {
