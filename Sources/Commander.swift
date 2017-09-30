@@ -48,11 +48,11 @@ class Command: Comparable, CustomStringConvertible, Hashable {
 
 // TODO: Regex with ModifierKeys
 class Commander {
-    var commands: [Command: (Void) -> Void] = [:]
+    var commands: [Command: () -> Void] = [:]
     var regexCommands: [Regex: ([String]) -> Void] = [:]
     var current: Command = Command()
 
-    func addCommand(_ callable: @escaping (Void) -> Void, _ keys: Key...) {
+    func addCommand(_ callable: @escaping () -> Void, _ keys: Key...) {
         self.commands[Command(keys)] = callable
     }
 
@@ -107,10 +107,8 @@ func < (lhs: Command, rhs: Command) -> Bool {
     if lhs.keys.count > rhs.keys.count {
         return false
     }
-    for (i, key) in lhs.keys.enumerated() {
-        if key != rhs.keys[i] {
-            return false
-        }
+    for (i, key) in lhs.keys.enumerated() where key != rhs.keys[i] {
+        return false
     }
     return true
 }

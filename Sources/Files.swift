@@ -2,12 +2,12 @@ import AppKit
 import PathKit
 
 enum OrderType {
-    case None
-    case NameAsc
-    case NameDesc
-    case MtimeAsc
-    case MtimeDesc
-    case Random
+    case none
+    case nameAsc
+    case nameDesc
+    case mtimeAsc
+    case mtimeDesc
+    case random
 }
 
 extension Array {
@@ -85,15 +85,15 @@ class Files {
         didSet {
             let filepath = self.files[self.i].path
             switch self.o {
-            case .NameAsc:
+            case .nameAsc:
                 self.files.sort(by: {$0.path < $1.path})
-            case .NameDesc:
+            case .nameDesc:
                 self.files.sort(by: {$0.path > $1.path})
-            case .MtimeAsc:
+            case .mtimeAsc:
                 self.files.sort(by: {$0.mtime < $1.mtime})
-            case .MtimeDesc:
+            case .mtimeDesc:
                 self.files.sort(by: {$0.mtime > $1.mtime})
-            case .Random:
+            case .random:
                 self.files.shuffle()
             default:
                 return
@@ -107,7 +107,7 @@ class Files {
 
     init(_ dirOrFile: String, _ callback: @escaping () -> Void) {
         self.files = []
-        self.o = .None
+        self.o = .none
         let dirOrFilePath = Path(dirOrFile)
         if dirOrFilePath.isFile {
             self.dir = dirOrFilePath.getDirPath()
@@ -132,7 +132,7 @@ class Files {
             let c = self.current
             let o = self.o
             self.files.appendIfImage(path)
-            if o != .Random {
+            if o != .random {
                 self.o = o
             }
             if c != nil {
@@ -164,7 +164,7 @@ class Files {
                         var c = self.current!
                         let o = self.o
                         self.files[i] = File(path)
-                        if o != .Random {
+                        if o != .random {
                             self.o = o
                         }
 
