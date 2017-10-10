@@ -44,7 +44,7 @@ extension Path {
     }
 }
 
-class File {
+class File: Equatable {
     let path: Path
     let mtime: Date
 
@@ -54,6 +54,10 @@ class File {
         var st = stat()
         stat(path.string, &st)
         self.mtime = Date(timeIntervalSince1970: Double(st.st_mtimespec.tv_sec))
+    }
+
+    public static func == (lhs: File, rhs: File) -> Bool {
+        return lhs.path == rhs.path && lhs.mtime == rhs.mtime
     }
 }
 
@@ -66,44 +70,45 @@ extension Array where Iterator.Element == File {
 }
 
 class Files {
-    var callback: () -> Void
+    private let dir: Path
+    private var dirMonitor: GCDFileMonitor?
+    private var currentMonitor: GCDFileMonitor?
+    private var isUpdating = false
+    private let isUpdatingLock = DispatchSemaphore(value: 1)
 
     private var files: [File]
     var i: Int {
         didSet {
+            if let cm = self.currentMonitor {
+                cm.cancel()
+            }
+
             if self.count > 0 {
                 if self.i < 0 {
                     self.i = 0
                 } else if self.i >= self.count {
                     self.i = self.count - 1
                 }
+
+                self.newCurrentMonitor()
             }
-            self.callback()
+
+            self.updateView()
         }
     }
     var o: OrderType {
         didSet {
-            let filepath = self.files[self.i].path
-            switch self.o {
-            case .nameAsc:
-                self.files.sort(by: {$0.path < $1.path})
-            case .nameDesc:
-                self.files.sort(by: {$0.path > $1.path})
-            case .mtimeAsc:
-                self.files.sort(by: {$0.mtime < $1.mtime})
-            case .mtimeDesc:
-                self.files.sort(by: {$0.mtime > $1.mtime})
-            case .random:
-                self.files.shuffle()
-            default:
+            guard let filepath = self.current else {
+                return
+            }
+            if !self.sort() {
                 return
             }
             self.i = self.files.index(where: {$0.path == filepath})!
         }
     }
 
-    var dir: Path
-    var monitor: FSEventsMonitor?
+    private let callback: () -> Void
 
     init(_ dirOrFile: String, _ callback: @escaping () -> Void) {
         self.files = []
@@ -116,75 +121,90 @@ class Files {
         }
         self.callback = callback
 
-        for path in (try? dir.children()) ?? [] {
+        for path in (try? self.dir.children()) ?? [] {
             self.files.appendIfImage(path)
         }
 
         self.i = self.files.index(where: {$0.path == dirOrFilePath}) ?? 0
 
-        self.monitor = FSEventsMonitor(self.dir, callback: self.eventHandler)
+        self.dirMonitor = GCDFileMonitor(self.dir, self.refreshDir)
+        self.newCurrentMonitor()
     }
 
-    private func eventHandler(event: FSEvent) {
-        var path = event.path
+    private func newCurrentMonitor() {
+        // [.attrib, .delete, .extend, .funlock, .link, .rename, .revoke, .write]
+        self.currentMonitor = GCDFileMonitor(
+            self.current!,
+            self.refreshCurrent,
+            events: [.attrib]
+        )
+    }
 
-        func create() {
-            let c = self.current
-            let o = self.o
-            self.files.appendIfImage(path)
-            if o != .random {
-                self.o = o
-            }
-            if c != nil {
-                self.i = self.files.index(where: {$0.path == c!})!
-            }
+    private func updateView() {
+        DispatchQueue.main.async(execute: self.callback)
+    }
+
+    private func refreshDir() {
+        // XXX: Get event here, spawn need thread with actual code.
+        // Then we should be able to process many events quickly.
+        // Remember about synchronization!
+
+        self.isUpdatingLock.wait()
+        self.isUpdating = true
+        self.isUpdatingLock.signal()
+
+        let o = self.o
+        let i = self.i
+
+        var files: [File] = []
+        for path in (try? self.dir.children()) ?? [] {
+            files.appendIfImage(path)
         }
-        func remove() {
-            if let idx = self.files.index(where: {$0.path == path}) {
-                self.files.remove(at: idx)
 
-                self.i -= idx < self.i ? 1 : 0
-            }
+        if o == .random {
+            // TODO: Make this more efficient (OrderedSet?)
+            let new = files.filter({ !self.files.contains($0) })
+            files = self.files.filter({ files.contains($0) })
+            self.files = files + new
+        } else {
+            self.files = files
+            self.sort()
         }
 
-        if event.flag.contains(.ItemCreated) {
-            create()
-        } else if event.flag.contains(.ItemRemoved) {
-            remove()
-        } else if event.flag.contains(.ItemModified) {
-            if let idx = self.files.index(where: {$0.path == path}) {
-                if idx == self.i {
-                    self.callback()
-                }
-            }
-        } else if event.flag.contains(.ItemRenamed) {
-            if let oldPath = event.oldPath {
-                if path.isImage {
-                    if let i = self.files.index(where: {$0.path == oldPath}) {
-                        var c = self.current!
-                        let o = self.o
-                        self.files[i] = File(path)
-                        if o != .random {
-                            self.o = o
-                        }
+        self.i = i
 
-                        if path == self.current! {
-                            c = path
-                        }
-                        self.i = self.files.index(where: {$0.path == c})!
-                    } else {
-                        create()
-                    }
-                } else {
-                    path = oldPath
-                    remove()
-                }
-            } else if !path.exists {
-                remove()
-            } else {
-                create()
-            }
+        self.isUpdatingLock.wait()
+        self.isUpdating = false
+        self.isUpdatingLock.signal()
+    }
+
+    private func refreshCurrent() {
+        self.isUpdatingLock.wait()
+        let isUpdating = self.isUpdating
+        self.isUpdatingLock.signal()
+
+        if !isUpdating {
+            self.updateView()
         }
+    }
+
+    @discardableResult
+    private func sort() -> Bool {
+        switch self.o {
+        case .nameAsc:
+            self.files.sort(by: {$0.path < $1.path})
+        case .nameDesc:
+            self.files.sort(by: {$0.path > $1.path})
+        case .mtimeAsc:
+            self.files.sort(by: {$0.mtime < $1.mtime})
+        case .mtimeDesc:
+            self.files.sort(by: {$0.mtime > $1.mtime})
+        case .random:
+            self.files.shuffle()
+        default:
+            return false
+        }
+        return true
     }
 
     var current: Path? {
