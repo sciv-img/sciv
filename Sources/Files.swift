@@ -1,5 +1,6 @@
 import AppKit
 import PathKit
+import OSet
 
 enum OrderType {
     case none
@@ -10,11 +11,11 @@ enum OrderType {
     case random
 }
 
-extension Array {
+extension OSet {
     mutating func shuffle() {
         for i in stride(from: self.count - 1, through: 1, by: -1) {
             let j = Int(arc4random_uniform(UInt32(i)))
-            swap(&self[i], &self[j])
+            self.swapAt(i, j)
         }
     }
 }
@@ -28,23 +29,22 @@ extension Path {
         }
         return Path(components[0..<components.count-1].joined(separator: Path.separator))
     }
+}
 
+extension URL {
     var isImage: Bool {
-        guard let ext = self.extension else {
+        let ext = self.pathExtension
+        guard ext != "" else {
             return false
         }
-        let kUTTCFE = kUTTagClassFilenameExtension
-        if let uti = UTTypeCreatePreferredIdentifierForTag(kUTTCFE, ext as CFString, nil) {
-            if !UTTypeConformsTo(uti.takeRetainedValue(), kUTTypeImage) {
-                return false
-            }
-            return true
-        }
-        return false
+        let uti = UTTypeCreatePreferredIdentifierForTag(
+            kUTTagClassFilenameExtension, ext as CFString, kUTTypeImage
+        )
+        return uti != nil && !(uti!.takeRetainedValue() as String).hasPrefix("dyn.")
     }
 }
 
-class File: Equatable {
+class File: Hashable, Comparable {
     let path: Path
     let mtime: Date
 
@@ -56,16 +56,20 @@ class File: Equatable {
         self.mtime = Date(timeIntervalSince1970: Double(st.st_mtimespec.tv_sec))
     }
 
+    convenience init(_ url: URL) {
+        self.init(Path(url.path))
+    }
+
+    var hashValue: Int {
+        return self.mtime.hashValue ^ self.path.hashValue
+    }
+
     public static func == (lhs: File, rhs: File) -> Bool {
         return lhs.path == rhs.path && lhs.mtime == rhs.mtime
     }
-}
 
-extension Array where Iterator.Element == File {
-    mutating func appendIfImage(_ path: Path) {
-        if path.isImage {
-            self.append(File(path))
-        }
+    public static func < (lhs: File, rhs: File) -> Bool {
+        return lhs.path < rhs.path
     }
 }
 
@@ -76,7 +80,7 @@ class Files {
     private var isUpdating = false
     private let isUpdatingLock = DispatchSemaphore(value: 1)
 
-    private var files: [File]
+    private var files: OSet<File>
     var i: Int {
         didSet {
             if let cm = self.currentMonitor {
@@ -111,7 +115,6 @@ class Files {
     private let callback: () -> Void
 
     init(_ dirOrFile: String, _ callback: @escaping () -> Void) {
-        self.files = []
         self.o = .none
         let dirOrFilePath = Path(dirOrFile)
         if dirOrFilePath.isFile {
@@ -121,14 +124,21 @@ class Files {
         }
         self.callback = callback
 
-        for path in (try? self.dir.children()) ?? [] {
-            self.files.appendIfImage(path)
-        }
+        self.files = Files.getDirContents(self.dir)
 
         self.i = self.files.index(where: {$0.path == dirOrFilePath}) ?? 0
 
         self.dirMonitor = GCDFileMonitor(self.dir, self.refreshDir)
         self.newCurrentMonitor()
+    }
+
+    private class func getDirContents(_ dir: Path) -> OSet<File> {
+        return OSet(
+            ((try? FileManager.default.contentsOfDirectory(
+                at: dir.url,
+                includingPropertiesForKeys: []
+            )) ?? []).lazy.filter({ $0.isImage }).map({ File($0) })
+        )
     }
 
     private func newCurrentMonitor() {
@@ -145,37 +155,34 @@ class Files {
     }
 
     private func refreshDir() {
-        // XXX: Get event here, spawn need thread with actual code.
+        // XXX: Get event here, spawn new thread with actual code.
         // Then we should be able to process many events quickly.
         // Remember about synchronization!
 
         self.isUpdatingLock.wait()
         self.isUpdating = true
         self.isUpdatingLock.signal()
+        defer {
+            self.isUpdatingLock.wait()
+            self.isUpdating = false
+            self.isUpdatingLock.signal()
+        }
 
         let o = self.o
         let i = self.i
 
-        var files: [File] = []
-        for path in (try? self.dir.children()) ?? [] {
-            files.appendIfImage(path)
-        }
+        let files = Files.getDirContents(self.dir)
 
         if o == .random {
-            // TODO: Make this more efficient (OrderedSet?)
-            let new = files.filter({ !self.files.contains($0) })
-            files = self.files.filter({ files.contains($0) })
-            self.files = files + new
+            let new = files.subtracting(self.files)
+            self.files.formIntersection(files)
+            self.files.formUnion(new)
         } else {
             self.files = files
             self.sort()
         }
 
         self.i = i
-
-        self.isUpdatingLock.wait()
-        self.isUpdating = false
-        self.isUpdatingLock.signal()
     }
 
     private func refreshCurrent() {
