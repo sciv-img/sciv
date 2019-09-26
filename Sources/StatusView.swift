@@ -16,9 +16,9 @@ class StatusView: NSView {
     internal var commandI = ""
     var command: String {
         set {
-            if newValue.characters.count > 3 {
+            if newValue.count > 3 {
                 let end = newValue.endIndex
-                self.commandI = newValue[newValue.index(end, offsetBy: -3)..<end]
+                self.commandI = String(newValue[newValue.index(end, offsetBy: -3)..<end])
             } else {
                 self.commandI = newValue
             }
@@ -41,7 +41,7 @@ class StatusView: NSView {
 
         let frame = NSRect(x: 0, y: 21, width: w, height: 1)
         NSColor.windowFrameColor.setFill()
-        NSRectFill(frame)
+        frame.fill()
 
         let colors = self.active ? [
             NSColor(deviceWhite: 180 / 0xff, alpha: 1),
@@ -58,7 +58,7 @@ class StatusView: NSView {
         paragraph.lineBreakMode = .byTruncatingTail
         status.draw(
             in: NSRect(x: 6, y: 3, width: w - 41, height: h - 7),
-            withAttributes: [NSParagraphStyleAttributeName: paragraph]
+            withAttributes: [.paragraphStyle: paragraph]
         )
 
         " | \(self.command)".draw(

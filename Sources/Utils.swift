@@ -41,10 +41,10 @@ class Regex: Hashable, Equatable {
         let error = UnsafeMutablePointer<UnsafePointer<Int8>?>.allocate(capacity: 1)
         let offset = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
         defer {
-            error.deallocate(capacity: 1)
-            error.deinitialize()
-            offset.deallocate(capacity: 1)
-            offset.deinitialize()
+            error.deallocate()
+            error.deinitialize(count: 1)
+            offset.deallocate()
+            offset.deinitialize(count: 1)
         }
         self.regex = pcre_compile(regex, 0, error, offset, nil)
         if self.regex == nil {
@@ -59,11 +59,11 @@ class Regex: Hashable, Equatable {
     func match(_ string: String) -> (Bool, [String]?) {
         let ovector = UnsafeMutablePointer<Int32>.allocate(capacity: 3 * 32)
         defer {
-            ovector.deallocate(capacity: 3 * 32)
-            ovector.deinitialize()
+            ovector.deallocate()
+            ovector.deinitialize(count: 1)
         }
         let matches = pcre_exec(
-            self.regex, nil, string, Int32(string.characters.count),
+            self.regex, nil, string, Int32(string.count),
             0, Cpcre.PCRE_PARTIAL, ovector, 3 * 32
         )
         if matches == Cpcre.PCRE_ERROR_PARTIAL {
@@ -76,11 +76,11 @@ class Regex: Hashable, Equatable {
         let si = string.startIndex
         let start = string.index(si, offsetBy: Int(ovector[2]))
         let end = string.index(si, offsetBy: Int(ovector[3]))
-        return (true, [string[start..<end]])
+        return (true, [String(string[start..<end])])
     }
 
-    var hashValue: Int {
-        return self.hash
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(self.hash)
     }
 
     static func == (lhs: Regex, rhs: Regex) -> Bool {

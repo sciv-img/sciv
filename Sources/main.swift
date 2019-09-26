@@ -3,13 +3,14 @@ import AppKit
 class AppDelegate: NSObject, NSApplicationDelegate {
     var windows: [Imager] = []
 
+    @objc
     func open() {
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.resolvesAliases = true
         panel.allowsMultipleSelection = true
-        if panel.runModal() == NSFileHandlingPanelOKButton {
+        if panel.runModal() == NSApplication.ModalResponse.OK {
             for url in panel.urls {
                 if url.path == "" {
                     continue
@@ -55,7 +56,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-let app = NSApplication.shared()
+let app = NSApplication.shared
 let delegate = AppDelegate()
 
 app.setActivationPolicy(.regular)

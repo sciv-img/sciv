@@ -60,8 +60,9 @@ class File: Hashable, Comparable {
         self.init(Path(url.path))
     }
 
-    var hashValue: Int {
-        return self.mtime.hashValue ^ self.path.hashValue
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(self.mtime)
+        hasher.combine(self.path)
     }
 
     public static func == (lhs: File, rhs: File) -> Bool {

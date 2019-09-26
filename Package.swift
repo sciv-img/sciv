@@ -1,11 +1,18 @@
+// swift-tools-version:4.2
 import PackageDescription
 
 let package = Package(
     name: "sciv",
+    products: [
+        .executable(name: "sciv", targets: ["sciv"]),
+    ],
     dependencies: [
-        .Package(url: "https://github.com/kylef/PathKit", Version(0, 8, 0)),
-        .Package(url: "https://github.com/sciv-img/OSet", Version(0, 4, 0)),
-        .Package(url: "https://github.com/sciv-img/Cpcre", Version(1, 0, 0)),
-        .Package(url: "https://github.com/sciv-img/Cwebp", Version(1, 0, 0))
+        .package(url: "https://github.com/kylef/PathKit", .exact(Version(1, 0, 0))),
+        .package(url: "https://github.com/sciv-img/OSet", .exact(Version(0, 5, 2))),
+        .package(url: "https://github.com/sciv-img/Cpcre", .exact(Version(2, 0, 0))),
+        .package(url: "https://github.com/sciv-img/Cwebp", .exact(Version(2, 0, 0))),
+    ],
+    targets: [
+        .target(name: "sciv", dependencies: ["PathKit", "OSet"], path: "Sources"),
     ]
 )

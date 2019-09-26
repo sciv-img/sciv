@@ -1,21 +1,21 @@
 import AppKit
 
 class Key: Equatable {
-    var modifiers: NSEventModifierFlags
+    var modifiers: NSEvent.ModifierFlags
     let key: Int
 
-    convenience init(_ key: Character, _ modifiers: NSEventModifierFlags...) {
+    convenience init(_ key: Character, _ modifiers: NSEvent.ModifierFlags...) {
         let utf = String(key).utf16
         self.init(Int(utf[utf.startIndex]), modifiers)
     }
 
-    convenience init(_ key: Int, _ modifiers: NSEventModifierFlags...) {
+    convenience init(_ key: Int, _ modifiers: NSEvent.ModifierFlags...) {
         self.init(key, modifiers)
     }
 
-    init(_ key: Int, _ modifiers: [NSEventModifierFlags]) {
+    init(_ key: Int, _ modifiers: [NSEvent.ModifierFlags]) {
         self.key = key
-        self.modifiers = NSEventModifierFlags()
+        self.modifiers = NSEvent.ModifierFlags()
         for modifier in modifiers {
             self.modifiers.insert(modifier)
         }
@@ -41,8 +41,8 @@ class Command: Comparable, CustomStringConvertible, Hashable {
         return self.keys.map({"\(UnicodeScalar($0.key)!)"}).joined(separator: "")
     }
 
-    var hashValue: Int {
-        return self.keys.map({"\($0.modifiers)\($0.key)"}).joined(separator: "").hashValue
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(self.keys.map({"\($0.modifiers)\($0.key)"}).joined(separator: ""))
     }
 }
 

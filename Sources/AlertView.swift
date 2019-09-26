@@ -15,7 +15,7 @@ class AlertView: NSView {
 
         super.init(frame: frame)
 
-        self.autoresizingMask = [.viewWidthSizable]
+        self.autoresizingMask = [.width]
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -33,6 +33,6 @@ class AlertView: NSView {
         )
 
         NSColor.windowFrameColor.setFill()
-        NSRectFill(NSRect(x: 0, y: 0, width: w, height: 1))
+        NSRect(x: 0, y: 0, width: w, height: 1).fill()
     }
 }

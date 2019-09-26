@@ -67,7 +67,7 @@ class Imager: NSWindow, NSWindowDelegate {
     let imageView: NSImageView
     let statusView: StatusView
     var alertView: AlertView!
-    let defaultMask: NSWindowStyleMask = [
+    let defaultMask: NSWindow.StyleMask = [
         .closable,
         .miniaturizable,
         .resizable,
@@ -84,9 +84,9 @@ class Imager: NSWindow, NSWindowDelegate {
 
     init() {
         self.imageView = NSImageView(frame: NSRect(x: 0, y: 22, width: 640, height: 458))
-        self.imageView.autoresizingMask = [.viewWidthSizable, .viewHeightSizable]
+        self.imageView.autoresizingMask = [.width, .height]
         self.statusView = StatusView(frame: NSRect(x: 0, y: 0, width: 640, height: 22))
-        self.statusView.autoresizingMask = [.viewWidthSizable]
+        self.statusView.autoresizingMask = [.width]
         self.isFullScreen = false
 
         self.commander = Commander()
@@ -197,6 +197,7 @@ class Imager: NSWindow, NSWindowDelegate {
         self.files.i += delta
     }
 
+    @objc
     func next() {
         self.next(["1"])
     }
@@ -237,7 +238,7 @@ class Imager: NSWindow, NSWindowDelegate {
         self.isFullScreen = !self.isFullScreen
 
         if self.isFullScreen {
-            guard let screen = NSScreen.main() else {
+            guard let screen = NSScreen.main else {
                 self.isFullScreen = false
                 return
             }
@@ -246,7 +247,7 @@ class Imager: NSWindow, NSWindowDelegate {
             self.previousFrame = self.frame
 
             NSMenu.setMenuBarVisible(false)
-            self.styleMask = NSBorderlessWindowMask
+            self.styleMask = .borderless
             self.setFrame(screen.frame, display: true, animate: false)
             self.backgroundColor = NSColor.black
             return
