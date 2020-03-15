@@ -8,8 +8,11 @@ class GCDFileMonitor {
     private let file: Int32
     private let dsfso: DispatchSourceFileSystemObject
 
-    init(_ dirOrFilePath: Path, _ callback: @escaping () -> Void, events: DispatchSource.FileSystemEvent = .all) {
+    init?(_ dirOrFilePath: Path, _ callback: @escaping () -> Void, events: DispatchSource.FileSystemEvent = .all) {
         self.file = open(dirOrFilePath.string, O_EVTONLY)
+        if self.file < 0 {
+            return nil
+        }
         self.dsfso = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: self.file,
             eventMask: events,
