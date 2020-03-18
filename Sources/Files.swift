@@ -78,8 +78,21 @@ class Files {
     private let dir: Path
     private var dirMonitor: GCDFileMonitor?
     private var currentMonitor: GCDFileMonitor?
-    private var isUpdating = false
+
     private let isUpdatingLock = DispatchSemaphore(value: 1)
+    private var _isUpdating = false
+    private var isUpdating: Bool {
+        set {
+            self.isUpdatingLock.wait()
+            self._isUpdating = newValue
+            self.isUpdatingLock.signal()
+        }
+        get {
+            self.isUpdatingLock.wait()
+            defer { self.isUpdatingLock.signal() }
+            return self._isUpdating
+        }
+    }
 
     private var files: OSet<File>
     var i: Int {
@@ -160,14 +173,8 @@ class Files {
         // Then we should be able to process many events quickly.
         // Remember about synchronization!
 
-        self.isUpdatingLock.wait()
         self.isUpdating = true
-        self.isUpdatingLock.signal()
-        defer {
-            self.isUpdatingLock.wait()
-            self.isUpdating = false
-            self.isUpdatingLock.signal()
-        }
+        defer { self.isUpdating = false }
 
         let o = self.o
         let i = self.i
@@ -187,11 +194,7 @@ class Files {
     }
 
     private func refreshCurrent() {
-        self.isUpdatingLock.wait()
-        let isUpdating = self.isUpdating
-        self.isUpdatingLock.signal()
-
-        if !isUpdating {
+        if !self.isUpdating {
             self.updateView()
         }
     }

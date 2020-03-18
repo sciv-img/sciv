@@ -13,7 +13,7 @@ class StatusView: NSView {
             self.needsDisplay = true
         }
     }
-    internal var commandI = ""
+    private var commandI = ""
     var command: String {
         set {
             if newValue.count > 3 {
