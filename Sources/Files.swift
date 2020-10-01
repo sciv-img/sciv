@@ -95,6 +95,7 @@ class Files {
     }
 
     private var files: OSet<File>
+    private var currentFile: File
     var i: Int {
         didSet {
             if let cm = self.currentMonitor {
@@ -110,6 +111,8 @@ class Files {
 
                 self.newCurrentMonitor()
             }
+
+            self.currentFile = self.files[self.i]
 
             self.updateView()
         }
@@ -141,6 +144,7 @@ class Files {
         self.files = Files.getDirContents(self.dir)
 
         self.i = self.files.index(where: {$0.path == dirOrFilePath}) ?? 0
+        self.currentFile = self.files[self.i]
 
         self.dirMonitor = GCDFileMonitor(self.dir, self.refreshDir)
         self.newCurrentMonitor()
@@ -190,7 +194,7 @@ class Files {
             self.sort()
         }
 
-        self.i = i
+        self.i = self.files.firstIndex(where: {$0.path == self.currentFile.path}) ?? i
     }
 
     private func refreshCurrent() {
