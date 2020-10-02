@@ -105,7 +105,7 @@ class Imager: NSWindow, NSWindowDelegate {
         self.delegate = self
 
         self.commander.addCommand(self.next, "^([0-9]*) ")
-        self.commander.addCommand(self.previous, Key(" ", .shift))
+        self.commander.addCommand(self.previous, "^([0-9]*)", Key(" ", .shift))
         self.commander.addCommand(self.first, Key("g"), Key("g"))
         self.commander.addCommand(self.last, Key("G", .shift))
         self.commander.addCommand({self.files.o = .nameAsc}, Key("o"), Key("n"))
@@ -202,11 +202,17 @@ class Imager: NSWindow, NSWindowDelegate {
         self.next(["1"])
     }
 
-    func previous() {
-        if self.files.i <= 0 {
+    func previous(_ args: [String]) {
+        let delta = Int(args[0]) ?? 1
+        if self.files.i - delta < 0 {
             return
         }
-        self.files.i -= 1
+        self.files.i -= delta
+    }
+
+    @objc
+    func previous() {
+        self.previous(["1"])
     }
 
     func first() {

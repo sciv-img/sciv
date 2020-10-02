@@ -22,19 +22,19 @@ class Key: Equatable {
     }
 }
 
-class Command: Comparable, CustomStringConvertible, Hashable {
-    var keys: [Key]
+protocol CommandCaller {
+    func tryCall(_ command: Command) -> (Bool, Bool)
+}
 
-    init(_ keys: [Key]) {
-        self.keys = keys
-    }
+struct Command: Comparable, CustomStringConvertible, Hashable {
+    var keys: [Key] = []
 
-    convenience init(_ keys: Key...) {
-        self.init(keys)
-    }
-
-    func addKey(_ key: Key) {
+    mutating func addKey(_ key: Key) {
         self.keys.append(key)
+    }
+
+    func dropFirst(_ n: Int) -> Command {
+        return Command(keys: Array(self.keys.dropFirst(n)))
     }
 
     var description: String {
@@ -46,19 +46,94 @@ class Command: Comparable, CustomStringConvertible, Hashable {
     }
 }
 
-// TODO: Regex with ModifierKeys
+struct KeyCaller: CommandCaller {
+    let command: Command
+    let callback: () -> Void
+
+    func check(_ command: Command) -> (Bool, Bool) {
+        if command == self.command {
+            return (true, true)
+        }
+        return (false, command < self.command)
+    }
+
+    func tryCall(_ command: Command) -> (Bool, Bool) {
+        let res = self.check(command)
+        if res.0 {
+            self.callback()
+        }
+        return res
+    }
+}
+
+struct RegexCaller: CommandCaller {
+    let regex: Regex
+    let callback: ([String]) -> Void
+
+    func check(_ command: Command) -> (Bool, Bool, [String]) {
+        let (match, captures) = self.regex.match(String(describing: command))
+        if match {
+            if captures != nil {
+                return (true, true, captures!)
+            }
+            return (false, true, [])
+        }
+        return (false, false, [])
+    }
+
+    func tryCall(_ command: Command) -> (Bool, Bool) {
+        let (match, partial, captures) = self.check(command)
+        if match {
+            self.callback(captures)
+        }
+        return (match, partial)
+    }
+}
+
+struct CombinedCaller: CommandCaller {
+    let regex: RegexCaller
+    let key: KeyCaller
+
+    init(_ regex: Regex, _ keys: [Key], _ callback: @escaping ([String]) -> Void) {
+        self.regex = RegexCaller(regex: regex, callback: callback)
+        self.key = KeyCaller(command: Command(keys: keys), callback: {})
+    }
+
+    func tryCall(_ command: Command) -> (Bool, Bool) {
+        let (match, partial, captures) = self.regex.check(command)
+        if match {
+            let res = self.key.check(command.dropFirst(captures[0].count))
+            if res.0 {
+                self.regex.callback(captures)
+            }
+            return res
+        }
+        return (match, partial)
+    }
+}
+
 class Commander {
-    var commands: [Command: () -> Void] = [:]
-    var regexCommands: [Regex: ([String]) -> Void] = [:]
+    var commands: [CommandCaller] = []
     var current: Command = Command()
 
     func addCommand(_ callable: @escaping () -> Void, _ keys: Key...) {
-        self.commands[Command(keys)] = callable
+        self.commands.append(KeyCaller(command: Command(keys: keys), callback: callable))
     }
 
     func addCommand(_ callable: @escaping ([String]) -> Void, _ regex: String) {
         if let r = Regex(regex) {
-            self.regexCommands[r] = callable
+            self.commands.append(RegexCaller(regex: r, callback: callable))
+            return
+        }
+        // TODO: Return error to user
+    }
+
+    func addCommand(_ callable: @escaping ([String]) -> Void, _ regex: String, _ keys: Key...) {
+        if let r = Regex(regex) {
+            // Prepend to be able to catch Combined ones before modifier-key-level
+            // equivalent Regex ones (e.g. Regex containing Space, ` `, and Combined
+            // with Shift+Space).
+            self.commands.insert(CombinedCaller(r, keys, callable), at: 0)
             return
         }
         // TODO: Return error to user
@@ -73,31 +148,19 @@ class Commander {
     }
 
     func tryCall() -> Bool {
-        // TODO: Refactor
-        // TODO: There may be situation where `commands` is a partial
-        // match, but `regex` is full match, it should be supported.
-        for (command, callable) in self.commands {
-            if self.current == command {
-                callable()
+        var maybeCmd = false
+        for command in self.commands {
+            let (called, partial) = command.tryCall(self.current)
+            if called {
                 self.current = Command()
                 return true
             }
-            if self.current < command {
-                return true
-            }
+            maybeCmd = maybeCmd || partial
         }
-        for (regex, callable) in self.regexCommands {
-            let (match, captures) = regex.match(String(describing: self.current))
-            if match {
-                if captures != nil {
-                    callable(captures!)
-                    self.current = Command()
-                }
-                return true
-            }
+        if !maybeCmd {
+            self.current = Command()
         }
-        self.current = Command()
-        return false
+        return maybeCmd
     }
 }
 
