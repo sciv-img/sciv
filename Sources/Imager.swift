@@ -85,8 +85,10 @@ class Imager: NSWindow, NSWindowDelegate {
     init() {
         self.imageView = NSImageView(frame: NSRect(x: 0, y: 22, width: 640, height: 458))
         self.imageView.autoresizingMask = [.width, .height]
+        self.imageView.clipsToBounds = true
         self.statusView = StatusView(frame: NSRect(x: 0, y: 0, width: 640, height: 22))
         self.statusView.autoresizingMask = [.width]
+        self.statusView.clipsToBounds = true
         self.isFullScreen = false
 
         self.commander = Commander()

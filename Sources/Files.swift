@@ -125,7 +125,7 @@ class Files {
             if !self.sort() {
                 return
             }
-            self.i = self.files.index(where: {$0.path == filepath})!
+            self.i = self.files.firstIndex(where: {$0.path == filepath})!
         }
     }
 
@@ -143,7 +143,7 @@ class Files {
 
         self.files = Files.getDirContents(self.dir)
 
-        self.i = self.files.index(where: {$0.path == dirOrFilePath}) ?? 0
+        self.i = self.files.firstIndex(where: {$0.path == dirOrFilePath}) ?? 0
         self.currentFile = self.files[self.i]
 
         self.dirMonitor = GCDFileMonitor(self.dir, self.refreshDir)
