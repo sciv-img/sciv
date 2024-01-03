@@ -85,7 +85,6 @@ class Imager: NSWindow, NSWindowDelegate {
     init() {
         self.imageView = NSImageView(frame: NSRect(x: 0, y: 22, width: 640, height: 458))
         self.imageView.autoresizingMask = [.width, .height]
-        self.imageView.clipsToBounds = true
         self.statusView = StatusView(frame: NSRect(x: 0, y: 0, width: 640, height: 22))
         self.statusView.autoresizingMask = [.width]
         self.statusView.clipsToBounds = true
@@ -134,6 +133,7 @@ class Imager: NSWindow, NSWindowDelegate {
             message: msg,
             callback: self.alertHide
         )
+        self.alertView.clipsToBounds = true
         view.addSubview(self.alertView)
 
         let iframe = self.imageView.frame
